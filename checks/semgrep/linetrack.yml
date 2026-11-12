@@ -1,0 +1,21 @@
+rules:
+  - id: linetrack-no-eval-exec
+    patterns:
+      - pattern-either:
+          - pattern: eval(...)
+          - pattern: exec(...)
+    message: "Dynamic eval/exec forbidden in LineTrack MES / OT paths."
+    languages: [python]
+    severity: ERROR
+
+  - id: linetrack-mqtt-wildcard-hash
+    pattern-regex: '\.(publish|subscribe)\(\s*["''][^"'']*#[^"'']*["'']'
+    message: "MQTT '#' wildcard topic violates IEC 62443 / allow_lists/mqtt_acl.json."
+    languages: [python]
+    severity: ERROR
+
+  - id: linetrack-opcua-no-security
+    pattern-regex: 'SecurityPolicyNone|AnonymousIdentityToken'
+    message: "OPC UA session must use SignAndEncrypt and disallow anonymous login."
+    languages: [python]
+    severity: ERROR

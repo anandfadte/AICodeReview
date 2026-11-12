@@ -1,0 +1,40 @@
+{
+  "roles": [
+    "Admin",
+    "Plant Head",
+    "Supervisor",
+    "Operator",
+    "Quality"
+  ],
+  "endpoints": {
+    "POST /admin/setpoint": {
+      "Admin": true,
+      "Plant Head": true,
+      "Supervisor": true,
+      "Operator": false,
+      "Quality": false
+    },
+    "GET /order/{id}": {
+      "Admin": true,
+      "Plant Head": true,
+      "Supervisor": true,
+      "Operator": true,
+      "Quality": true,
+      "note": "But only own plant \u2014 ownership check required, IDOR check"
+    },
+    "POST /downtime": {
+      "Admin": true,
+      "Plant Head": true,
+      "Supervisor": true,
+      "Operator": true,
+      "Quality": true
+    },
+    "GET /genealogy/{part_id}": {
+      "Admin": true,
+      "Plant Head": true,
+      "Supervisor": true,
+      "Operator": false,
+      "Quality": true
+    }
+  }
+}

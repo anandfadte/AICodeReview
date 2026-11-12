@@ -1,0 +1,96 @@
+name: LineTrack Review Gate (SQLite MVP)
+
+on:
+  pull_request:
+    branches: [main, master]
+
+permissions:
+  contents: read
+  security-events: write
+  checks: write
+  pull-requests: write
+
+jobs:
+  linetrack-review:
+    # MVP runs on github-hosted runner with zero-install SQLite
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: sqlite:///./reviewer.db
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Install native scanners (Semgrep, Gitleaks, Trivy)
+        run: |
+          pip install semgrep
+          curl -sSfL https://github.com/gitleaks/gitleaks/releases/download/v8.21.2/gitleaks_8.21.2_linux_x64.tar.gz | tar -xz -C /usr/local/bin gitleaks
+          curl -sSfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
+
+      - name: Initialize SQLite DB via Alembic
+        run: alembic upgrade head
+
+      - name: Run deterministic scanners
+        run: |
+          mkdir -p /tmp/reviewer
+          python -m backend.reviewer.deterministic.scanners --path . > /tmp/reviewer/scanner_findings.json
+
+      - name: Run LineTrack Review Orchestrator & PR Gate
+        id: review_gate
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          AZURE_OPENAI_KEY: ${{ secrets.AZURE_OPENAI_KEY }}
+          AZURE_OPENAI_ENDPOINT: ${{ secrets.AZURE_OPENAI_ENDPOINT }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          set +e
+          python -m backend.reviewer.reporting.github \
+            --repo . \
+            --base "${{ github.event.pull_request.base.sha }}" \
+            --head "${{ github.sha }}" \
+            --pr-number "${{ github.event.pull_request.number }}" \
+            --sarif /tmp/reviewer/findings.sarif \
+            --comment-out /tmp/reviewer/pr_comment.md \
+            --check-out /tmp/reviewer/check_payload.json \
+            --save
+          GATE_EXIT=$?
+          echo "gate_exit=$GATE_EXIT" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Upload SARIF to GitHub Code Scanning
+        if: always() && hashFiles('/tmp/reviewer/findings.sarif') != ''
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: /tmp/reviewer/findings.sarif
+
+      - name: Post PR Comment
+        if: always() && hashFiles('/tmp/reviewer/pr_comment.md') != ''
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const body = fs.readFileSync('/tmp/reviewer/pr_comment.md', 'utf8');
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body
+            });
+
+      - name: Enforce Gate Exit Code
+        if: steps.review_gate.outputs.gate_exit != '0'
+        run: |
+          echo "LineTrack Review Gate BLOCKED merge (exit ${{ steps.review_gate.outputs.gate_exit }})"
+          exit "${{ steps.review_gate.outputs.gate_exit }}"

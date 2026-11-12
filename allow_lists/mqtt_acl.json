@@ -1,0 +1,25 @@
+{
+  "gateway-plant1": {
+    "publish": [
+      "plant1/+/+/telemetry"
+    ],
+    "subscribe": [
+      "plant1/+/+/setpoint"
+    ]
+  },
+  "api-service": {
+    "publish": [
+      "plant1/+/+/setpoint"
+    ],
+    "subscribe": [
+      "plant1/+/+/telemetry"
+    ]
+  },
+  "dashboard": {
+    "publish": [],
+    "subscribe": [
+      "plant1/+/+/telemetry"
+    ]
+  },
+  "note": "No principal may publish to # or subscribe to # (wildcard). No publish to setpoint without allow-list."
+}

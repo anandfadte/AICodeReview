@@ -1,0 +1,32 @@
+{
+  "SPINDLE_SPEED": {
+    "min": 500,
+    "max": 3000,
+    "roles": [
+      "Supervisor",
+      "Plant Head"
+    ],
+    "requires_interlock": true,
+    "requires_audit": true
+  },
+  "FEED_RATE": {
+    "min": 10,
+    "max": 200,
+    "roles": [
+      "Supervisor",
+      "Plant Head"
+    ],
+    "requires_interlock": true,
+    "requires_audit": true
+  },
+  "COOLANT_ON": {
+    "min": 0,
+    "max": 1,
+    "roles": [
+      "Supervisor",
+      "Operator"
+    ],
+    "requires_interlock": false,
+    "requires_audit": true
+  }
+}

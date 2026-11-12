@@ -1,0 +1,91 @@
+[
+  {
+    "id": "MES-001",
+    "name": "OEE correctness",
+    "standards": [
+      "IATF 16949 8.5.1"
+    ],
+    "method": "Property test + AST"
+  },
+  {
+    "id": "MES-002",
+    "name": "Lot genealogy completeness",
+    "standards": [
+      "IATF 16949 8.5.2",
+      "ISO 27001 A.12"
+    ],
+    "method": "Graph + orphan query"
+  },
+  {
+    "id": "OT-001",
+    "name": "PLC write-back gate",
+    "standards": [
+      "IEC 62443 SR 3.3",
+      "IEC 62443 SR 2.1"
+    ],
+    "method": "Flow-graph + AST, 5 checks"
+  },
+  {
+    "id": "OT-002",
+    "name": "MQTT topic permissions",
+    "standards": [
+      "IEC 62443 SR 2.1",
+      "IEC 62443 SR 3.3"
+    ],
+    "method": "ACL matrix check"
+  },
+  {
+    "id": "OT-003",
+    "name": "OPC UA session",
+    "standards": [
+      "IEC 62443 SR 3.1"
+    ],
+    "method": "AST config check"
+  },
+  {
+    "id": "SEC-001",
+    "name": "RBAC / IDOR",
+    "standards": [
+      "OWASP ASVS 4.1",
+      "ISO 27001 A.9"
+    ],
+    "method": "AST endpoint check"
+  },
+  {
+    "id": "LLM-001",
+    "name": "Ask LineTrack injection/leakage",
+    "standards": [
+      "OWASP LLM Top 10 LLM01",
+      "OWASP LLM Top 10 LLM02",
+      "DPDP"
+    ],
+    "method": "Prompt review + injection test"
+  },
+  {
+    "id": "PRIV-001",
+    "name": "DPDP PII",
+    "standards": [
+      "DPDP Act",
+      "ISO 27001 A.8"
+    ],
+    "method": "PII field check"
+  },
+  {
+    "id": "SUP-001",
+    "name": "Secrets + SBOM",
+    "standards": [
+      "ISO 27001 A.8",
+      "OWASP ASVS 10"
+    ],
+    "method": "Gitleaks + Trivy"
+  },
+  {
+    "id": "AUD-001",
+    "name": "Audit trail + backup",
+    "standards": [
+      "ISO 27001 A.12",
+      "IEC 62443 SR 2.10"
+    ],
+    "method": "Log check + UNVERIFIED if no restore log"
+  }
+]

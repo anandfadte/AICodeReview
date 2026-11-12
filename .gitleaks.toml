@@ -1,0 +1,13 @@
+title = "LineTrack Reviewer Gitleaks Configuration"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Exclude local env, virtualenv, SQLite DB, and generated artifacts"
+paths = [
+  '''^\.env$''',
+  '''(^|/)(\.venv|venv|__pycache__|\.pytest_cache|\.git)/''',
+  '''^reviewer\.db$''',
+  '''^(audit\.html|audit\.pdf|findings\.sarif)$''',
+]

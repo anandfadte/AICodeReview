@@ -1,0 +1,70 @@
+{
+  "flows": [
+    {
+      "id": "flow-safe-1",
+      "name": "Safe spindle write",
+      "nodes": [
+        {
+          "id": "n1",
+          "type": "http in",
+          "name": "API setpoint"
+        },
+        {
+          "id": "n2",
+          "type": "function",
+          "name": "Check auth + clamp",
+          "code": "if (role not in ['Supervisor','Plant Head']) reject; if (speed < 500 || speed > 3000) reject; check_interlock();"
+        },
+        {
+          "id": "n3",
+          "type": "mqtt out",
+          "topic": "plant1/line2/machine5/setpoint"
+        },
+        {
+          "id": "n4",
+          "type": "function",
+          "name": "Audit log",
+          "code": "log.write(who, what, when)"
+        }
+      ],
+      "wires": [
+        [
+          "n1",
+          "n2"
+        ],
+        [
+          "n2",
+          "n3"
+        ],
+        [
+          "n3",
+          "n4"
+        ]
+      ],
+      "target_plc_tag": "SPINDLE_SPEED"
+    },
+    {
+      "id": "flow-unsafe-1",
+      "name": "Unsafe feed write - NO clamp, NO auth",
+      "nodes": [
+        {
+          "id": "m1",
+          "type": "http in",
+          "name": "API feed"
+        },
+        {
+          "id": "m2",
+          "type": "mqtt out",
+          "topic": "plant1/line2/machine5/setpoint"
+        }
+      ],
+      "wires": [
+        [
+          "m1",
+          "m2"
+        ]
+      ],
+      "target_plc_tag": "FEED_RATE"
+    }
+  ]
+}

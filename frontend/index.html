@@ -1,0 +1,413 @@
+<!-- This UI will be migrated later. Backend APIs in backend/app.py are frozen. DB migration SQLite -> Postgres is config-only. -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LineTrack Reviewer — OT Safety & Compliance Gate</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans">
+  <header class="border-b border-slate-800 bg-slate-900">
+    <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+      <div>
+        <h1 class="text-xl font-bold tracking-tight text-white">LineTrack Reviewer</h1>
+        <p class="text-xs text-slate-400">Deterministic-First OT Safety, MES &amp; Security Audit Gate (SQLite MVP)</p>
+      </div>
+      <span id="healthBadge" class="px-2.5 py-1 text-xs rounded-full bg-slate-800 text-slate-300 border border-slate-700">
+        API: Checking...
+      </span>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-6 py-8 space-y-6">
+    <!-- Action Bar + Verdict -->
+    <section class="bg-slate-900 border border-slate-800 rounded-xl p-6 flex flex-wrap items-center justify-between gap-4">
+      <div>
+        <h2 class="text-lg font-semibold text-white">Review Gate &amp; Deterministic Scanners</h2>
+        <p class="text-sm text-slate-400 mt-1">
+          All findings are persisted in SQLite (<code class="text-sky-400">reviewer.db</code>) and retrieved via REST.
+        </p>
+      </div>
+      <div class="flex flex-wrap items-center gap-2">
+        <button id="runSampleBtn" onclick="runSampleReview()" class="px-4 py-2 rounded-lg bg-sky-600 hover:bg-sky-500 text-sm font-semibold text-white transition">
+          Run on Sample Repo
+        </button>
+        <button id="downloadSarifBtn" onclick="downloadSarif()" class="px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-200 border border-slate-700">
+          Download SARIF
+        </button>
+        <button id="downloadReportBtn" onclick="downloadReport()" class="px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-200 border border-slate-700">
+          Download Report
+        </button>
+        <button id="viewAuditBtn" onclick="loadAuditReport()" class="px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-medium text-sky-300 border border-slate-700">
+          View Full Audit
+        </button>
+        <span id="verdictBadge" class="px-3 py-1.5 text-sm font-semibold rounded-lg bg-slate-800 text-slate-300 border border-slate-700">
+          NO RUN YET
+        </span>
+      </div>
+    </section>
+
+    <!-- Injection Alert Banner (Amber) -->
+    <div id="injectionBanner" class="hidden p-4 rounded-xl bg-amber-950/70 border border-amber-600 text-amber-200 text-sm flex items-center justify-between">
+      <div>
+        <span class="font-bold">INJECTION_ATTEMPT Flagged:</span>
+        Untrusted log/code/PR text attempted instruction override and was isolated as data only.
+      </div>
+      <span class="px-2 py-0.5 text-xs font-mono rounded bg-amber-900 text-amber-100">Spec P5</span>
+    </div>
+
+    <!-- Last PR Run Summary -->
+    <section class="bg-slate-900 border border-slate-800 rounded-xl p-5 flex flex-wrap items-center justify-between gap-3 text-xs">
+      <div class="flex items-center gap-3">
+        <span class="font-semibold uppercase tracking-wider text-slate-400">Last PR Run</span>
+        <span id="lastPrLabel" class="font-mono text-slate-200">PR #— | Verdict: —</span>
+      </div>
+      <span id="lastCheckLink" class="font-mono text-sky-400">GitHub Check: —</span>
+    </section>
+
+    <!-- OT Guard 5-Check Panel -->
+    <section class="bg-slate-900 border border-slate-800 rounded-xl p-6">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-sm font-semibold uppercase tracking-wider text-slate-300">OT Write Guard — 5 Mandatory Controls</h3>
+        <span id="runMeta" class="text-xs text-slate-400 font-mono">run_id: —</span>
+      </div>
+      <div id="otChecksGrid" class="grid grid-cols-2 sm:grid-cols-5 gap-3"></div>
+    </section>
+
+    <!-- Findings List + Vanilla JS Filter -->
+    <section class="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-4">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <h3 class="text-sm font-semibold uppercase tracking-wider text-slate-300">Findings</h3>
+        <div class="flex items-center gap-2 text-xs">
+          <button onclick="setFilter('All')" class="filter-btn px-3 py-1.5 rounded-md bg-sky-600 text-white font-medium" data-filter="All">All</button>
+          <button onclick="setFilter('High')" class="filter-btn px-3 py-1.5 rounded-md bg-slate-800 text-slate-300 hover:bg-slate-700" data-filter="High">High / Critical</button>
+          <button onclick="setFilter('Medium')" class="filter-btn px-3 py-1.5 rounded-md bg-slate-800 text-slate-300 hover:bg-slate-700" data-filter="Medium">Medium</button>
+          <button onclick="setFilter('Low')" class="filter-btn px-3 py-1.5 rounded-md bg-slate-800 text-slate-300 hover:bg-slate-700" data-filter="Low">Low</button>
+        </div>
+      </div>
+      <div id="findingsList" class="space-y-3 text-sm text-slate-400">
+        No findings loaded yet. Click "Run on Sample Repo".
+      </div>
+    </section>
+
+    <!-- Judge Verification Log Panel -->
+    <section class="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-3">
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <h3 class="text-sm font-semibold uppercase tracking-wider text-slate-300">Judge Verification Log</h3>
+        <span class="text-xs font-mono text-slate-400">Scanners &rarr; Agents &rarr; Judge Re-ran &rarr; Reproduced / Downgraded</span>
+      </div>
+      <div id="judgeLogList" class="space-y-2 text-xs text-slate-400">
+        No Judge entries yet.
+      </div>
+    </section>
+
+    <!-- Full Audit: Traceability Matrix + UNVERIFIED Controls -->
+    <section class="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-6">
+      <div class="flex items-center justify-between">
+        <h3 class="text-sm font-semibold uppercase tracking-wider text-slate-300">Full Audit — Traceability &amp; UNVERIFIED Controls</h3>
+        <button onclick="loadAuditReport()" class="px-2.5 py-1 text-xs rounded bg-slate-800 hover:bg-slate-700 text-slate-200">Refresh Audit</button>
+      </div>
+      <div class="overflow-x-auto">
+        <h4 class="text-xs font-semibold text-amber-300 uppercase mb-2">UNVERIFIED Controls (Never Assumed Pass — Spec P12)</h4>
+        <table class="w-full text-left text-xs">
+          <thead class="text-slate-400 border-b border-slate-800"><tr><th class="py-2 pr-3">Control</th><th class="py-2 pr-3">Status</th><th class="py-2 pr-3">Owner</th><th class="py-2 pr-3">Due</th><th class="py-2">Required Evidence</th></tr></thead>
+          <tbody id="unverifiedBody"><tr><td colspan="5" class="py-2 text-slate-400">Click "View Full Audit" to load.</td></tr></tbody>
+        </table>
+      </div>
+      <div class="overflow-x-auto">
+        <h4 class="text-xs font-semibold text-slate-300 uppercase mb-2">Traceability Matrix (Requirement &rarr; Code &rarr; Test &rarr; Status)</h4>
+        <table class="w-full text-left text-xs">
+          <thead class="text-slate-400 border-b border-slate-800"><tr><th class="py-2 pr-3">Requirement</th><th class="py-2 pr-3">Endpoint / Flow</th><th class="py-2 pr-3">Test</th><th class="py-2">Status</th></tr></thead>
+          <tbody id="traceabilityBody"><tr><td colspan="4" class="py-2 text-slate-400">Click "View Full Audit" to load.</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+    <!-- Evaluation Metrics Table -->
+    <section class="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 class="text-sm font-semibold uppercase tracking-wider text-slate-300">Golden Set Evaluation (30 Cases)</h3>
+        <button onclick="loadEval()" class="px-2.5 py-1 text-xs rounded bg-slate-800 hover:bg-slate-700 text-slate-200">Run Evaluation</button>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs">
+          <thead class="text-slate-400 border-b border-slate-800">
+            <tr><th class="py-2 pr-4">Precision</th><th class="py-2 pr-4">Recall</th><th class="py-2 pr-4">FP Rate</th><th class="py-2 pr-4">Avg Cost / PR</th><th class="py-2">Avg Time / PR</th></tr>
+          </thead>
+          <tbody id="evalBody">
+            <tr><td colspan="5" class="py-2 text-slate-400">Click "Run Evaluation" to compute metrics via /api/eval.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    // Pure Vanilla JS — talks only to frozen FastAPI JSON endpoints
+    const API_BASE = window.LINETRACK_API || "http://localhost:8000";
+    const OT_LABELS = [
+      ["allowlist", "Allow-list"],
+      ["clamp", "Clamp (min/max)"],
+      ["auth", "Auth / Role"],
+      ["interlock", "Interlock"],
+      ["audit", "Audit Log"]
+    ];
+    let currentRunId = "";
+    let currentFindings = [];
+    let activeFilter = "All";
+
+    function escapeHtml(str) {
+      return String(str || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+    }
+
+    async function checkHealth() {
+      const el = document.getElementById("healthBadge");
+      try {
+        const res = await fetch(`${API_BASE}/health`);
+        const data = await res.json();
+        el.textContent = `API: ${data.status.toUpperCase()} (${data.db})`;
+        el.className = "px-2.5 py-1 text-xs rounded-full bg-emerald-950 text-emerald-300 border border-emerald-700";
+      } catch (err) {
+        el.textContent = "API: Offline";
+        el.className = "px-2.5 py-1 text-xs rounded-full bg-rose-950 text-rose-300 border border-rose-700";
+      }
+    }
+
+    function renderOtChecks(otChecks) {
+      const grid = document.getElementById("otChecksGrid");
+      grid.innerHTML = OT_LABELS.map(([key, label]) => {
+        const status = (otChecks && otChecks[key]) || "—";
+        const cls = status === "PASS" ? "text-emerald-400" : status === "FAIL" ? "text-rose-400 font-bold" : "text-slate-400";
+        return `
+          <div class="p-3 rounded-lg bg-slate-950 border border-slate-800">
+            <div class="text-xs text-slate-400">${label}</div>
+            <div class="mt-1 font-mono text-sm ${cls}">${status}</div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function severityBadge(sev) {
+      const map = {
+        Critical: "bg-red-950 text-red-300 border-red-700",
+        High: "bg-rose-950 text-rose-300 border-rose-700",
+        Medium: "bg-amber-950 text-amber-300 border-amber-700",
+        Low: "bg-sky-950 text-sky-300 border-sky-700",
+        Info: "bg-slate-800 text-slate-300 border-slate-700"
+      };
+      return map[sev] || map.Info;
+    }
+
+    function setFilter(filter) {
+      activeFilter = filter;
+      document.querySelectorAll(".filter-btn").forEach((btn) => {
+        const active = btn.dataset.filter === filter;
+        btn.className = active
+          ? "filter-btn px-3 py-1.5 rounded-md bg-sky-600 text-white font-medium"
+          : "filter-btn px-3 py-1.5 rounded-md bg-slate-800 text-slate-300 hover:bg-slate-700";
+      });
+      renderFindings();
+    }
+
+    function toggleDetails(idx) {
+      const box = document.getElementById(`detail-${idx}`);
+      const btn = document.getElementById(`toggle-${idx}`);
+      if (!box) return;
+      const hidden = box.classList.toggle("hidden");
+      btn.textContent = hidden ? "Show" : "Hide";
+    }
+
+    function renderFindings() {
+      const container = document.getElementById("findingsList");
+      const filtered = currentFindings.filter((f) => {
+        if (activeFilter === "All") return true;
+        if (activeFilter === "High") return f.severity === "High" || f.severity === "Critical";
+        return f.severity === activeFilter;
+      });
+      if (!filtered.length) {
+        container.innerHTML = `<div class="p-4 rounded-lg bg-slate-950 border border-slate-800 text-slate-400">No findings match filter "${activeFilter}".</div>`;
+        return;
+      }
+      container.innerHTML = filtered.map((f, idx) => `
+        <article class="p-4 rounded-lg bg-slate-950 border border-slate-800 space-y-2">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+              <span class="px-2 py-0.5 text-xs font-semibold rounded border ${severityBadge(f.severity)}">${escapeHtml(f.severity)}</span>
+              <span class="font-semibold text-white">${escapeHtml(f.check_id)} / ${escapeHtml(f.rule)}</span>
+              <span class="font-mono text-xs text-sky-400">${escapeHtml(f.file)}:${f.line}</span>
+              ${f.status === "SUPPRESSED" ? `<span class="px-2 py-0.5 text-xs rounded bg-slate-800 text-amber-300 border border-amber-700">SUPPRESSED</span>` : ""}
+            </div>
+            <div class="flex items-center gap-2">
+              ${f.status !== "SUPPRESSED" ? `<button onclick="suppressFinding('${escapeHtml(f.id)}')" class="px-2.5 py-1 text-xs rounded bg-amber-950 hover:bg-amber-900 text-amber-200 border border-amber-700">Suppress</button>` : ""}
+              <button id="toggle-${idx}" onclick="toggleDetails(${idx})" class="px-2.5 py-1 text-xs rounded bg-slate-800 hover:bg-slate-700 text-slate-200">
+                Show
+              </button>
+            </div>
+          </div>
+          <p class="text-slate-300 text-xs">${escapeHtml(f.message)}</p>
+          <div id="detail-${idx}" class="hidden space-y-2 pt-2 border-t border-slate-800">
+            <pre class="p-3 rounded bg-slate-900 text-slate-300 font-mono text-xs overflow-x-auto border border-slate-800">${escapeHtml(f.evidence)}</pre>
+            <p class="text-xs text-emerald-300"><span class="font-semibold">Fix:</span> ${escapeHtml(f.fix)}</p>
+            <p class="text-xs text-slate-400">Standards: ${escapeHtml((f.standards || []).join(", "))}</p>
+          </div>
+        </article>
+      `).join("");
+    }
+
+    function renderJudgeLog(judgeLog) {
+      const container = document.getElementById("judgeLogList");
+      if (!judgeLog || !judgeLog.length) {
+        container.innerHTML = `<div class="text-slate-400">No High/Critical candidates judged yet.</div>`;
+        return;
+      }
+      container.innerHTML = judgeLog.map((j) => {
+        const ok = j.reproduced;
+        const badge = ok ? "bg-emerald-950 text-emerald-300 border-emerald-700" : "bg-amber-950 text-amber-300 border-amber-700";
+        return `
+          <div class="p-3 rounded-lg bg-slate-950 border border-slate-800 flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <span class="font-mono text-sky-400">${escapeHtml(j.file)}:${j.line}</span>
+              <span class="font-semibold text-white ml-2">${escapeHtml(j.check_id)} / ${escapeHtml(j.rule)}</span>
+              <div class="text-slate-400 mt-0.5">${escapeHtml(j.deterministic_probe)} &mdash; ${escapeHtml(j.reason)}</div>
+            </div>
+            <span class="px-2 py-0.5 rounded border font-mono ${badge}">
+              ${ok ? "Reproduced" : escapeHtml(j.decision)} (${escapeHtml(j.final_severity)})
+            </span>
+          </div>
+        `;
+      }).join("");
+    }
+
+    async function runSampleReview() {
+      const btn = document.getElementById("runSampleBtn");
+      btn.disabled = true;
+      btn.textContent = "Running...";
+      try {
+        const res = await fetch(`${API_BASE}/api/review`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ repo_path: "sample_repo", mode: "pr" })
+        });
+        const run = await res.json();
+        currentRunId = run.run_id;
+        const badge = document.getElementById("verdictBadge");
+        badge.textContent = `${run.verdict} (exit ${run.exit_code})`;
+        badge.className = run.verdict === "BLOCK"
+          ? "px-3 py-1.5 text-sm font-semibold rounded-lg bg-rose-950 text-rose-300 border border-rose-700"
+          : "px-3 py-1.5 text-sm font-semibold rounded-lg bg-emerald-950 text-emerald-300 border border-emerald-700";
+        document.getElementById("runMeta").textContent = `run_id: ${run.run_id} | findings: ${run.findings_count} | cost: $${Number(run.cost_usd || 0).toFixed(4)}`;
+        document.getElementById("injectionBanner").classList.toggle("hidden", !run.injection_detected);
+        renderOtChecks(run.ot_checks);
+        renderJudgeLog(run.judge_log);
+
+        const fRes = await fetch(`${API_BASE}/api/findings?run_id=${encodeURIComponent(run.run_id)}`);
+        currentFindings = await fRes.json();
+        renderFindings();
+        loadLatestRun();
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Run on Sample Repo";
+      }
+    }
+
+    async function suppressFinding(findingId) {
+      const owner = window.prompt("Suppression owner (e.g. qa-lead):");
+      if (!owner) return;
+      const reason = window.prompt("Suppression reason (auto-expires in 30 days):");
+      if (!reason) return;
+      const res = await fetch(`${API_BASE}/api/findings/${encodeURIComponent(findingId)}/suppress`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ owner, reason })
+      });
+      if (res.ok && currentRunId) {
+        const fRes = await fetch(`${API_BASE}/api/findings?run_id=${encodeURIComponent(currentRunId)}`);
+        currentFindings = await fRes.json();
+        renderFindings();
+      }
+    }
+
+    async function downloadSarif() {
+      const q = currentRunId ? `?run_id=${encodeURIComponent(currentRunId)}` : "";
+      const res = await fetch(`${API_BASE}/api/sarif${q}`);
+      const data = await res.json();
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/sarif+json" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "findings.sarif";
+      a.click();
+    }
+
+    async function downloadReport() {
+      const q = currentRunId ? `?run_id=${encodeURIComponent(currentRunId)}&format=html` : "?format=html";
+      const res = await fetch(`${API_BASE}/api/report${q}`);
+      const htmlText = await res.text();
+      const blob = new Blob([htmlText], { type: "text/html" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "audit.html";
+      a.click();
+    }
+
+    async function loadAuditReport() {
+      const q = currentRunId ? `?run_id=${encodeURIComponent(currentRunId)}` : "";
+      const res = await fetch(`${API_BASE}/api/report${q}`);
+      if (!res.ok) return;
+      const report = await res.json();
+      const unvBody = document.getElementById("unverifiedBody");
+      const trBody = document.getElementById("traceabilityBody");
+      unvBody.innerHTML = (report.unverified || []).map((u) => `
+        <tr class="border-t border-slate-800">
+          <td class="py-2 pr-3 text-white">${escapeHtml(u.control)}</td>
+          <td class="py-2 pr-3"><span class="px-2 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-700 font-mono">${escapeHtml(u.status)}</span></td>
+          <td class="py-2 pr-3 text-slate-300">${escapeHtml(u.owner)}</td>
+          <td class="py-2 pr-3 text-slate-300">${escapeHtml(u.due_date)}</td>
+          <td class="py-2 text-slate-400">${escapeHtml(u.required_evidence)}</td>
+        </tr>
+      `).join("") || `<tr><td colspan="5" class="py-2 text-slate-400">No data.</td></tr>`;
+      trBody.innerHTML = (report.traceability || []).map((t) => `
+        <tr class="border-t border-slate-800">
+          <td class="py-2 pr-3 text-white">${escapeHtml(t.requirement)}</td>
+          <td class="py-2 pr-3 font-mono text-sky-400">${escapeHtml(t.implementation)}</td>
+          <td class="py-2 pr-3 font-mono text-slate-300">${escapeHtml(t.test)}</td>
+          <td class="py-2 font-semibold text-amber-300">${escapeHtml(t.status)}</td>
+        </tr>
+      `).join("") || `<tr><td colspan="4" class="py-2 text-slate-400">No data.</td></tr>`;
+    }
+
+    async function loadLatestRun() {
+      try {
+        const res = await fetch(`${API_BASE}/api/runs/latest`);
+        if (!res.ok) return;
+        const run = await res.json();
+        const prLabel = run.pr_number ? `PR #${run.pr_number}` : `Run ${run.run_id}`;
+        document.getElementById("lastPrLabel").textContent = `${prLabel} | Verdict: ${run.verdict}`;
+        const conclusion = run.verdict === "BLOCK" ? "failure" : "success";
+        document.getElementById("lastCheckLink").textContent = `GitHub Check: ${conclusion} (exit ${run.exit_code})`;
+      } catch (_) {}
+    }
+
+    async function loadEval() {
+      const res = await fetch(`${API_BASE}/api/eval`);
+      if (!res.ok) return;
+      const m = await res.json();
+      document.getElementById("evalBody").innerHTML = `
+        <tr class="border-t border-slate-800 font-mono text-sm">
+          <td class="py-2 pr-4 text-emerald-300 font-bold">${Number(m.precision).toFixed(3)}</td>
+          <td class="py-2 pr-4 text-emerald-300 font-bold">${Number(m.recall).toFixed(3)}</td>
+          <td class="py-2 pr-4 text-slate-200">${Number(m.fp_rate).toFixed(3)}</td>
+          <td class="py-2 pr-4 text-sky-300">$${Number(m.avg_cost_per_pr_usd).toFixed(6)}</td>
+          <td class="py-2 text-slate-200">${Number(m.avg_time_per_pr_sec).toFixed(4)}s</td>
+        </tr>
+      `;
+    }
+
+    renderOtChecks({});
+    checkHealth();
+    loadLatestRun();
+  </script>
+</body>
+</html>
