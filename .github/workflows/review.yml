@@ -46,18 +46,7 @@ jobs:
 
       - name: Run Test Suite (pytest)
         run: |
-          pytest -v --tb=short -ra > /tmp/pytest.log 2>&1 || true
-          tail -n 80 /tmp/pytest.log
-          if grep -qE "(FAILURES|FAILED )" /tmp/pytest.log; then
-            echo "PYTEST_FAILED=1" >> "$GITHUB_ENV"
-          fi
-
-      - name: Upload Pytest Log
-        if: always() && hashFiles('/tmp/pytest.log') != ''
-        uses: actions/upload-artifact@v4
-        with:
-          name: pytest-log
-          path: /tmp/pytest.log
+          pytest -v --tb=short -ra
 
       - name: Run deterministic scanners
         run: |
@@ -125,9 +114,3 @@ jobs:
         run: |
           echo "LineTrack Review Gate BLOCKED merge (exit ${{ steps.review_gate.outputs.gate_exit }})"
           exit "${{ steps.review_gate.outputs.gate_exit }}"
-
-      - name: Enforce Pytest Suite Result
-        if: env.PYTEST_FAILED == '1'
-        run: |
-          echo "::error::Pytest suite failed. Review pytest-log artifact for details."
-          exit 1
