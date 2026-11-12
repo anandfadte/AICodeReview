@@ -1,8 +1,11 @@
 name: LineTrack Review Gate (SQLite MVP)
 
 on:
+  push:
+    branches: [main, "test/**", "test-*"]
   pull_request:
     branches: [main, master]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -41,6 +44,10 @@ jobs:
       - name: Initialize SQLite DB via Alembic
         run: alembic upgrade head
 
+      - name: Run Test Suite (pytest)
+        run: |
+          pytest -v
+
       - name: Run deterministic scanners
         run: |
           mkdir -p /tmp/reviewer
@@ -56,11 +63,13 @@ jobs:
           GITHUB_REPOSITORY: ${{ github.repository }}
         run: |
           set +e
+          BASE_ARG=""
+          if [ -n "${{ github.event.pull_request.base.sha }}" ]; then
+            BASE_ARG="--base ${{ github.event.pull_request.base.sha }} --head ${{ github.sha }} --pr-number ${{ github.event.pull_request.number }}"
+          fi
           python -m backend.reviewer.reporting.github \
             --repo . \
-            --base "${{ github.event.pull_request.base.sha }}" \
-            --head "${{ github.sha }}" \
-            --pr-number "${{ github.event.pull_request.number }}" \
+            $BASE_ARG \
             --sarif /tmp/reviewer/findings.sarif \
             --comment-out /tmp/reviewer/pr_comment.md \
             --check-out /tmp/reviewer/check_payload.json \
@@ -76,7 +85,7 @@ jobs:
           sarif_file: /tmp/reviewer/findings.sarif
 
       - name: Post PR Comment
-        if: always() && hashFiles('/tmp/reviewer/pr_comment.md') != ''
+        if: always() && github.event_name == 'pull_request' && hashFiles('/tmp/reviewer/pr_comment.md') != ''
         uses: actions/github-script@v7
         with:
           script: |
@@ -89,8 +98,8 @@ jobs:
               body
             });
 
-      - name: Enforce Gate Exit Code
-        if: steps.review_gate.outputs.gate_exit != '0'
+      - name: Enforce Gate Exit Code (PR only)
+        if: github.event_name == 'pull_request' && steps.review_gate.outputs.gate_exit != '0'
         run: |
           echo "LineTrack Review Gate BLOCKED merge (exit ${{ steps.review_gate.outputs.gate_exit }})"
           exit "${{ steps.review_gate.outputs.gate_exit }}"
