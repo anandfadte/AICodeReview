@@ -43,7 +43,7 @@ def test_mvp_has_no_docker_compose_and_no_psycopg_or_pgvector() -> None:
 
 def test_docs_adrs_and_migration_plans_exist() -> None:
     docs_dir = Path(__file__).resolve().parents[2] / "docs"
-    for fname in ("ADR-01-deterministic-first.md", "ADR-02-sqlite-mvp-postgres-prod.md"):
+    for fname in ("ADR-01-deterministic-first.md", "ADR-02-sqlite-mvp-postgres-prod.md", "ADR-03-self-hosted-runner.md"):
         content = (docs_dir / fname).read_text(encoding="utf-8")
         for heading in ("## Context", "## Options", "## Decision", "## Consequences", "## Reverse-if"):
             assert heading in content, f"{fname} missing {heading}"
