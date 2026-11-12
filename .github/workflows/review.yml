@@ -46,7 +46,18 @@ jobs:
 
       - name: Run Test Suite (pytest)
         run: |
-          pytest -v --tb=short -ra
+          pytest -v --tb=short -ra > /tmp/pytest.log 2>&1 || true
+          tail -n 80 /tmp/pytest.log
+          if grep -qE "(FAILURES|FAILED )" /tmp/pytest.log; then
+            echo "PYTEST_FAILED=1" >> "$GITHUB_ENV"
+          fi
+
+      - name: Upload Pytest Log
+        if: always() && hashFiles('/tmp/pytest.log') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: pytest-log
+          path: /tmp/pytest.log
 
       - name: Run deterministic scanners
         run: |
@@ -78,6 +89,17 @@ jobs:
           echo "gate_exit=$GATE_EXIT" >> "$GITHUB_OUTPUT"
           exit 0
 
+      - name: Upload Review Outputs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: review-outputs
+          path: |
+            /tmp/reviewer/pr_comment.md
+            /tmp/reviewer/check_payload.json
+            /tmp/reviewer/findings.sarif
+          if-no-files-found: ignore
+
       - name: Upload SARIF to GitHub Code Scanning
         if: always() && hashFiles('/tmp/reviewer/findings.sarif') != ''
         uses: github/codeql-action/upload-sarif@v3
@@ -103,3 +125,9 @@ jobs:
         run: |
           echo "LineTrack Review Gate BLOCKED merge (exit ${{ steps.review_gate.outputs.gate_exit }})"
           exit "${{ steps.review_gate.outputs.gate_exit }}"
+
+      - name: Enforce Pytest Suite Result
+        if: env.PYTEST_FAILED == '1'
+        run: |
+          echo "::error::Pytest suite failed. Review pytest-log artifact for details."
+          exit 1
