@@ -149,9 +149,9 @@ def check_oee_file(path: Path) -> list[Finding]:
     findings: list[Finding] = []
     file_str = str(path)
     try:
-        text = path.read_text(encoding="utf-8")
+        text = path.read_text(encoding="utf-8", errors="ignore")
         tree = ast.parse(text, filename=file_str)
-    except SyntaxError:
+    except (SyntaxError, UnicodeDecodeError, OSError):
         return findings
 
     for node in ast.walk(tree):
@@ -234,9 +234,9 @@ def check_genealogy_file(path: Path) -> list[Finding]:
     findings: list[Finding] = []
     file_str = str(path)
     try:
-        text = path.read_text(encoding="utf-8")
+        text = path.read_text(encoding="utf-8", errors="ignore")
         tree = ast.parse(text, filename=file_str)
-    except SyntaxError:
+    except (SyntaxError, UnicodeDecodeError, OSError):
         return findings
 
     for node in ast.walk(tree):
@@ -335,9 +335,9 @@ def check_rbac_idor_file(path: Path, rbac_matrix: dict[str, Any] | None = None) 
     findings: list[Finding] = []
     file_str = str(path)
     try:
-        text = path.read_text(encoding="utf-8")
+        text = path.read_text(encoding="utf-8", errors="ignore")
         tree = ast.parse(text, filename=file_str)
-    except SyntaxError:
+    except (SyntaxError, UnicodeDecodeError, OSError):
         return findings
 
     rbac = rbac_matrix or load_rbac_matrix()
@@ -465,7 +465,7 @@ def check_opcua_file(path: Path) -> list[Finding]:
         return []
     file_str = str(path)
     try:
-        text = path.read_text(encoding="utf-8")
+        text = path.read_text(encoding="utf-8", errors="ignore")
     except Exception:
         return []
     if not re.search(r"\b(opcua|asyncua|set_security_string)\b", text, re.I):
@@ -496,9 +496,9 @@ def check_ask_linetrack_file(path: Path) -> list[Finding]:
     findings: list[Finding] = []
     file_str = str(path)
     try:
-        text = path.read_text(encoding="utf-8")
+        text = path.read_text(encoding="utf-8", errors="ignore")
         tree = ast.parse(text, filename=file_str)
-    except SyntaxError:
+    except (SyntaxError, UnicodeDecodeError, OSError):
         return findings
 
     for node in ast.walk(tree):
@@ -554,7 +554,7 @@ def check_dpdp_pii_file(path: Path) -> list[Finding]:
         return []
     file_str = str(path)
     try:
-        text = path.read_text(encoding="utf-8")
+        text = path.read_text(encoding="utf-8", errors="ignore")
     except Exception:
         return []
     m = re.search(r"\b(operator_name|employee_id|productivity_scores?|attendance_log|aadhaar|phone_number|personal_email)\b", text, re.I)

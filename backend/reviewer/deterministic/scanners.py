@@ -137,6 +137,8 @@ def _run_semgrep(files: list[Path], repo_root: Path, airgap: bool = False) -> li
 
     # Always run deterministic LineTrack AST checks and merge with Semgrep CLI hits
     for f in files:
+        if f.suffix.lower() != ".py":
+            continue
         rel = _rel_str(f, repo_root)
         for item in (
             check_rbac_idor_file(f)
