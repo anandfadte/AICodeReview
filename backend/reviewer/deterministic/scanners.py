@@ -271,7 +271,7 @@ def _run_trivy(files: list[Path], repo_root: Path, airgap: bool = False) -> list
     trivy_bin = shutil.which("trivy")
     manifests = [f for f in files if f.name in {"requirements.txt", "pyproject.toml", "package.json", "package-lock.json"}]
 
-    if trivy_bin and (manifests or any(f.is_file() for f in files)):
+    if trivy_bin and (manifests or (repo_root / "requirements.txt").is_file() or (repo_root / "pyproject.toml").is_file()):
         tmp_dir = _ensure_tmp_dir()
         cache_dir = tmp_dir / "trivy-cache"
         cache_dir.mkdir(parents=True, exist_ok=True)

@@ -28,7 +28,7 @@ class CaseOutcome:
     rule_hit: bool
 
 
-def evaluate_golden_set(cases: list[GoldenCase] = GOLDEN_CASES, airgap: bool = False) -> dict[str, Any]:
+def evaluate_golden_set(cases: list[GoldenCase] = GOLDEN_CASES, airgap: bool = True) -> dict[str, Any]:
     outcomes: list[CaseOutcome] = []
     tp = fp = fn = tn = 0
     per_category: dict[str, dict[str, int]] = defaultdict(

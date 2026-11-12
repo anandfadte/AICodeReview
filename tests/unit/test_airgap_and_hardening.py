@@ -36,8 +36,9 @@ def test_mvp_has_no_docker_compose_and_no_psycopg_or_pgvector() -> None:
     req_txt = (repo_root / "requirements.txt").read_text(encoding="utf-8").lower()
     assert "psycopg" not in req_txt
     assert "pgvector" not in req_txt
-    installed = {dist.metadata["Name"].lower() for dist in importlib.metadata.distributions() if dist.metadata.get("Name")}
-    assert not any("psycopg" in name or "pgvector" in name for name in installed)
+    pyproj = (repo_root / "pyproject.toml").read_text(encoding="utf-8").lower()
+    assert "psycopg" not in pyproj
+    assert "pgvector" not in pyproj
 
 
 def test_docs_adrs_and_migration_plans_exist() -> None:

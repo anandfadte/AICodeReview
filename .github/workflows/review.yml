@@ -46,7 +46,7 @@ jobs:
 
       - name: Run Test Suite (pytest)
         run: |
-          pytest -v
+          pytest -v --tb=short -ra
 
       - name: Run deterministic scanners
         run: |
