@@ -21,30 +21,67 @@
   </header>
 
   <main class="max-w-6xl mx-auto px-6 py-8 space-y-6">
-    <!-- Action Bar + Verdict -->
-    <section class="bg-slate-900 border border-slate-800 rounded-xl p-6 flex flex-wrap items-center justify-between gap-4">
-      <div>
-        <h2 class="text-lg font-semibold text-white">Review Gate &amp; Deterministic Scanners</h2>
-        <p class="text-sm text-slate-400 mt-1">
-          All findings are persisted in SQLite (<code class="text-sky-400">reviewer.db</code>) and retrieved via REST.
-        </p>
+    <!-- Action Bar + Repository Input + Verdict -->
+    <section class="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-4">
+      <div class="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h2 class="text-lg font-semibold text-white">Review Gate &amp; Deterministic Scanners</h2>
+          <p class="text-sm text-slate-400 mt-1">
+            Audit any local folder, cloned repository, or Git HTTPS URL. Findings are persisted in SQLite (<code class="text-sky-400">reviewer.db</code>).
+          </p>
+        </div>
+        <div class="flex items-center gap-2">
+          <span id="verdictBadge" class="px-3 py-1.5 text-sm font-semibold rounded-lg bg-slate-800 text-slate-300 border border-slate-700">
+            NO RUN YET
+          </span>
+        </div>
       </div>
-      <div class="flex flex-wrap items-center gap-2">
-        <button id="runSampleBtn" onclick="runSampleReview()" class="px-4 py-2 rounded-lg bg-sky-600 hover:bg-sky-500 text-sm font-semibold text-white transition">
-          Run on Sample Repo
-        </button>
-        <button id="downloadSarifBtn" onclick="downloadSarif()" class="px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-200 border border-slate-700">
-          Download SARIF
-        </button>
-        <button id="downloadReportBtn" onclick="downloadReport()" class="px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-200 border border-slate-700">
-          Download Report
-        </button>
-        <button id="viewAuditBtn" onclick="loadAuditReport()" class="px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-medium text-sky-300 border border-slate-700">
-          View Full Audit
-        </button>
-        <span id="verdictBadge" class="px-3 py-1.5 text-sm font-semibold rounded-lg bg-slate-800 text-slate-300 border border-slate-700">
-          NO RUN YET
-        </span>
+
+      <!-- Git / Folder Input Row -->
+      <div class="flex flex-wrap items-end gap-3 pt-3 border-t border-slate-800">
+        <div class="flex-1 min-w-[260px]">
+          <label class="block text-xs uppercase font-semibold text-slate-400 mb-1">Git Repository URL or Local Path</label>
+          <input id="repoPathInput" type="text" value="sample_repo" placeholder="e.g. https://github.com/owner/repo or C:\path\to\repo" class="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-sm text-white focus:outline-none focus:border-sky-500 font-mono">
+        </div>
+
+        <div class="w-36">
+          <label class="block text-xs uppercase font-semibold text-slate-400 mb-1">Audit Mode</label>
+          <select id="reviewModeSelect" class="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-sm text-white focus:outline-none focus:border-sky-500">
+            <option value="pr" selected>PR Mode (Diff)</option>
+            <option value="full">Full Audit</option>
+            <option value="airgap">Air-Gap ($0 Offline)</option>
+          </select>
+        </div>
+
+        <div class="w-28">
+          <label class="block text-xs uppercase font-semibold text-slate-400 mb-1">Branch</label>
+          <input id="branchInput" type="text" placeholder="main" class="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-sm text-white focus:outline-none focus:border-sky-500 font-mono">
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button id="runReviewBtn" onclick="runCustomReview()" class="px-4 py-2 rounded-lg bg-sky-600 hover:bg-sky-500 text-sm font-semibold text-white transition shadow-sm">
+            Audit Repository
+          </button>
+          <button id="quickSampleBtn" onclick="setPreset('sample_repo')" class="px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-300 border border-slate-700" title="Reset to sample repo">
+            Sample Repo
+          </button>
+        </div>
+      </div>
+
+      <!-- Action Buttons Row -->
+      <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-800/80 text-xs">
+        <div class="flex flex-wrap items-center gap-2">
+          <button id="downloadSarifBtn" onclick="downloadSarif()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 font-medium text-slate-200 border border-slate-700">
+            Download SARIF
+          </button>
+          <button id="downloadReportBtn" onclick="downloadReport()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 font-medium text-slate-200 border border-slate-700">
+            Download Report
+          </button>
+          <button id="viewAuditBtn" onclick="loadAuditReport()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 font-medium text-sky-300 border border-slate-700">
+            View Full Audit
+          </button>
+        </div>
+        <span id="activeRepoLabel" class="text-slate-400 font-mono">Target: sample_repo</span>
       </div>
     </section>
 
@@ -281,16 +318,38 @@
       }).join("");
     }
 
-    async function runSampleReview() {
-      const btn = document.getElementById("runSampleBtn");
-      btn.disabled = true;
-      btn.textContent = "Running...";
+    function setPreset(path) {
+      const input = document.getElementById("repoPathInput");
+      if (input) input.value = path;
+      const lbl = document.getElementById("activeRepoLabel");
+      if (lbl) lbl.textContent = `Target: ${path}`;
+    }
+
+    async function runCustomReview() {
+      const input = document.getElementById("repoPathInput");
+      const repoPath = (input ? input.value : "").trim() || "sample_repo";
+      const mode = (document.getElementById("reviewModeSelect") || {}).value || "pr";
+      const branch = ((document.getElementById("branchInput") || {}).value || "").trim();
+      const btn = document.getElementById("runReviewBtn");
+
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = repoPath.startsWith("http") ? "Cloning & Auditing..." : "Auditing...";
+      }
+      const lbl = document.getElementById("activeRepoLabel");
+      if (lbl) lbl.textContent = `Target: ${repoPath} (${mode})`;
+
       try {
         const res = await fetch(`${API_BASE}/api/review`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ repo_path: "sample_repo", mode: "pr" })
+          body: JSON.stringify({ repo_path: repoPath, mode, branch })
         });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ detail: res.statusText }));
+          alert(`Audit failed: ${err.detail || "Server error"}`);
+          return;
+        }
         const run = await res.json();
         currentRunId = run.run_id;
         const badge = document.getElementById("verdictBadge");
@@ -307,10 +366,19 @@
         currentFindings = await fRes.json();
         renderFindings();
         loadLatestRun();
+      } catch (err) {
+        alert(`Request failed: ${err.message}`);
       } finally {
-        btn.disabled = false;
-        btn.textContent = "Run on Sample Repo";
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = "Audit Repository";
+        }
       }
+    }
+
+    async function runSampleReview() {
+      setPreset("sample_repo");
+      await runCustomReview();
     }
 
     async function suppressFinding(findingId) {

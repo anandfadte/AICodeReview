@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 import os
+import re
+import shutil
+import subprocess
 import sys
 import uuid
 from pathlib import Path
@@ -57,9 +60,31 @@ def create_review(req: ReviewRequest) -> ReviewRunOut:
     """Execute Plan -> Scanners -> Graph -> Agents -> Judge -> Gate and persist to SQLite."""
     store = _get_store()
     run_id = f"run-{uuid.uuid4().hex[:10]}"
-    repo_target = Path(req.repo_path)
-    if not repo_target.is_absolute():
-        repo_target = (_ROOT_DIR / repo_target).resolve()
+    repo_raw = req.repo_path.strip()
+
+    if repo_raw.startswith(("http://", "https://", "git@")):
+        # Clone Git repository into temporary directory
+        repo_name = re.sub(r"[^a-zA-Z0-9_-]", "_", repo_raw.split("/")[-1].replace(".git", ""))
+        clone_dir = Path("/tmp/reviewer/cloned") / repo_name
+        if clone_dir.exists():
+            shutil.rmtree(clone_dir, ignore_errors=True)
+        clone_dir.parent.mkdir(parents=True, exist_ok=True)
+        cmd = ["git", "clone", "--depth", "1"]
+        if req.branch:
+            cmd.extend(["--branch", req.branch])
+        cmd.extend([repo_raw, str(clone_dir)])
+        try:
+            subprocess.run(cmd, capture_output=True, text=True, check=True, timeout=120)
+            repo_target = clone_dir
+        except (subprocess.CalledProcessError, subprocess.TimeoutExpired, OSError) as exc:
+            err_msg = getattr(exc, "stderr", "") or str(exc)
+            raise HTTPException(status_code=400, detail=f"Failed to clone git repository '{repo_raw}': {err_msg}") from exc
+    else:
+        repo_target = Path(repo_raw)
+        if not repo_target.is_absolute():
+            repo_target = (_ROOT_DIR / repo_target).resolve()
+        if not repo_target.exists():
+            raise HTTPException(status_code=404, detail=f"Target repository path not found: {repo_target}")
 
     run_review(
         repo_root=repo_target,
