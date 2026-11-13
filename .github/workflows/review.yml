@@ -46,7 +46,7 @@ jobs:
 
       - name: Run Test Suite (pytest)
         run: |
-          pytest -v --tb=short -ra
+          pytest -v --tb=short -ra 2>&1 | tee /tmp/pytest.log
 
       - name: Run deterministic scanners
         run: |
@@ -84,6 +84,7 @@ jobs:
         with:
           name: review-outputs
           path: |
+            /tmp/pytest.log
             /tmp/reviewer/pr_comment.md
             /tmp/reviewer/check_payload.json
             /tmp/reviewer/findings.sarif
