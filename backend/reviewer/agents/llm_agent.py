@@ -71,10 +71,28 @@ class CostTracker:
     def llm_calls(self) -> int:
         return len(self.records)
 
+    @property
+    def prompt_tokens(self) -> int:
+        return sum(r.prompt_tokens for r in self.records)
+
+    @property
+    def completion_tokens(self) -> int:
+        return sum(r.completion_tokens for r in self.records)
+
+    @property
+    def total_tokens(self) -> int:
+        return self.prompt_tokens + self.completion_tokens
+
     def summary(self) -> dict[str, Any]:
         return {
             "llm_calls": self.llm_calls,
             "total_cost_usd": self.total_cost_usd,
+            "prompt_tokens": self.prompt_tokens,
+            "completion_tokens": self.completion_tokens,
+            "total_tokens": self.total_tokens,
+            "circuit_breaker_cap_usd": MAX_RUN_SPEND_USD,
+            "circuit_breaker_max_calls": MAX_RUN_LLM_CALLS,
+            "circuit_breaker_status": "TRIPPED" if (self.total_cost_usd >= MAX_RUN_SPEND_USD or self.llm_calls >= MAX_RUN_LLM_CALLS) else "NORMAL",
             "by_tier": [
                 {
                     "tier": r.tier,
@@ -113,8 +131,8 @@ class LLMRouter:
         if use_openai:
             self.models = {
                 "mini": os.getenv("OPENAI_MODEL_MINI", "gpt-4o-mini"),
-                "review": os.getenv("OPENAI_MODEL_REVIEW", "gpt-4o-mini"),
-                "judge": os.getenv("OPENAI_MODEL_JUDGE", "gpt-4o-mini"),
+                "review": os.getenv("OPENAI_MODEL_REVIEW", "gpt-4o"),
+                "judge": os.getenv("OPENAI_MODEL_JUDGE", "gpt-4.1"),
             }
         else:
             self.models = {

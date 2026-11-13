@@ -27,6 +27,22 @@ def normalize_severity(sev: str) -> str:
     }.get(low, "Medium")
 
 
+def infer_tool(check_id: str, rule: str) -> str:
+    r = (rule or "").upper()
+    c = (check_id or "").upper()
+    if r.startswith("GITLEAKS-") or "SECRET" in r or "AWS-KEY" in r or "PASSWORD" in r:
+        return "Gitleaks"
+    if r.startswith("CVE-") or r in {"MISSING-SBOM"}:
+        return "Trivy"
+    if r.startswith("SEMGREP-") or r.startswith("LINETRACK-"):
+        return "Semgrep"
+    if c == "OT-001" or r.startswith("PLC-WRITE-"):
+        return "OT Write Guard"
+    if r.startswith("INJECTION_"):
+        return "Injection Guard"
+    return "MES Domain Checks"
+
+
 def make_finding_id(check_id: str, rule: str, file: str, line: int) -> str:
     raw = f"{check_id}:{rule}:{file}:{line}".encode("utf-8")
     return hashlib.sha256(raw).hexdigest()[:12]
@@ -49,6 +65,7 @@ class Finding:
     suppression: dict[str, Any] | None = None
     message: str = ""
     verified_deterministically: bool = True
+    tool: str = ""
 
     def __post_init__(self) -> None:
         self.severity = normalize_severity(self.severity)
@@ -58,6 +75,8 @@ class Finding:
         self.evidence = redact_secrets(self.evidence or "")[:500]
         self.fix = redact_secrets(self.fix or "")
         self.message = redact_secrets(self.message or self.rule)
+        if not self.tool:
+            self.tool = infer_tool(self.check_id, self.rule)
         if self.status not in VALID_STATUSES:
             raise ValueError(f"Invalid status {self.status!r}; expected one of {VALID_STATUSES}")
         if not self.id:
@@ -104,6 +123,7 @@ class Finding:
                 "standards": self.standards,
                 "blast_radius": self.blast_radius,
                 "evidence": self.evidence,
+                "tool": self.tool,
                 "status": self.status,
                 "verified_deterministically": self.verified_deterministically,
             },

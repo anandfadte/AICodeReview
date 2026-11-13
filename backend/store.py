@@ -24,6 +24,7 @@ from backend.models import (
     PRRunModel,
     SuppressionModel,
 )
+from backend.reviewer.findings.schema import infer_tool
 from backend.reviewer.guardrails.redact import redact_secrets
 
 DEFAULT_DATABASE_URL = "sqlite:///./reviewer.db"
@@ -56,7 +57,27 @@ class ReviewerStore:
         self.engine = create_portable_engine(self.db_url)
         if auto_create:
             Base.metadata.create_all(self.engine)
+            self._ensure_columns()
         self.SessionLocal = sessionmaker(bind=self.engine, expire_on_commit=False, future=True)
+
+    def _ensure_columns(self) -> None:
+        """Lightweight column migration to keep SQLite / Postgres schemas up-to-date."""
+        try:
+            with self.engine.connect() as conn:
+                res = conn.execute(select(FindingModel).limit(0))
+        except Exception:
+            pass
+        try:
+            with self.engine.connect() as conn:
+                # Check for 'tool' column in findings
+                cols = []
+                if self.engine.dialect.name == "sqlite":
+                    cols = [c[1] for c in conn.exec_driver_sql("PRAGMA table_info(findings)").fetchall()]
+                if cols and "tool" not in cols:
+                    conn.exec_driver_sql("ALTER TABLE findings ADD COLUMN tool VARCHAR(64) DEFAULT 'LineTrack'")
+                    conn.commit()
+        except Exception:
+            pass
 
     def db_backend_name(self) -> str:
         return self.engine.dialect.name
@@ -153,6 +174,7 @@ class ReviewerStore:
         evidence_safe = redact_secrets(str(finding.get("evidence") or ""))[:500]
         fix_safe = redact_secrets(str(finding.get("fix") or ""))
         msg_safe = redact_secrets(str(finding.get("message") or finding.get("rule") or ""))
+        tool_val = str(finding.get("tool") or infer_tool(str(finding.get("check_id", "")), str(finding.get("rule", ""))))
 
         with self.SessionLocal() as session:
             row = session.get(FindingModel, row_id)
@@ -173,6 +195,7 @@ class ReviewerStore:
                     fix=fix_safe,
                     status=str(finding.get("status", "OPEN")),
                     message=msg_safe,
+                    tool=tool_val,
                     verified_deterministically=bool(finding.get("verified_deterministically", True)),
                 )
                 session.add(row)
@@ -183,6 +206,7 @@ class ReviewerStore:
                 row.fix = fix_safe
                 row.message = msg_safe
                 row.status = str(finding.get("status", row.status))
+                row.tool = tool_val
                 row.verified_deterministically = bool(finding.get("verified_deterministically", True))
             session.commit()
         return row_id
@@ -309,6 +333,7 @@ class ReviewerStore:
                         "status": r.status,
                         "suppression": active_sups.get(r.id) if r.status == "SUPPRESSED" else None,
                         "message": r.message,
+                        "tool": getattr(r, "tool", None) or infer_tool(r.check_id, r.rule),
                         "verified_deterministically": r.verified_deterministically,
                     }
                 )

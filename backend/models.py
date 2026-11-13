@@ -71,6 +71,7 @@ class FindingModel(Base):
     fix: Mapped[str] = mapped_column(Text, default="")
     status: Mapped[str] = mapped_column(String(32), default="OPEN", index=True)
     message: Mapped[str] = mapped_column(Text, default="")
+    tool: Mapped[str] = mapped_column(String(64), default="LineTrack")
     verified_deterministically: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 

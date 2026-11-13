@@ -57,6 +57,8 @@ def test_judge_rejects_unverified_llm_high_and_uses_different_model(
         return {"text": "mocked", "prompt_tokens": 100, "completion_tokens": 50, "candidates": []}
 
     monkeypatch.setenv("OPENAI_API_KEY", "sk-test-routing-placeholder")
+    monkeypatch.delenv("OPENAI_MODEL_REVIEW", raising=False)
+    monkeypatch.delenv("OPENAI_MODEL_JUDGE", raising=False)
     router = LLMRouter(client=mock_client)
     assert router.model_for_tier("mini") == "gpt-4o-mini"
     assert router.model_for_tier("review") == "gpt-4o"

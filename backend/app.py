@@ -183,6 +183,7 @@ def get_report(run_id: str = Query(default=""), format: str = Query(default="jso
                 status=fd["status"],
                 suppression=fd["suppression"],
                 message=fd["message"],
+                tool=fd.get("tool", ""),
                 verified_deterministically=fd["verified_deterministically"],
             )
             for fd in findings_dicts

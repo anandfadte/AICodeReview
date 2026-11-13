@@ -38,6 +38,7 @@ class FindingOut(BaseModel):
     status: str = "OPEN"
     suppression: dict[str, Any] | None = None
     message: str = ""
+    tool: str = "LineTrack"
     verified_deterministically: bool = True
 
 

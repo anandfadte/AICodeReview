@@ -65,6 +65,7 @@ def upgrade() -> None:
         sa.Column("fix", sa.Text(), nullable=False),
         sa.Column("status", sa.String(length=32), nullable=False),
         sa.Column("message", sa.Text(), nullable=False),
+        sa.Column("tool", sa.String(length=64), server_default="LineTrack", nullable=False),
         sa.Column("verified_deterministically", sa.Boolean(), nullable=False),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
     )

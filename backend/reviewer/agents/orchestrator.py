@@ -23,7 +23,7 @@ from backend.reviewer.agents.privacy import PrivacyAgent
 from backend.reviewer.agents.security import SecurityAgent
 from backend.reviewer.deterministic.ot_write_guard import summarize_ot_checks
 from backend.reviewer.findings.sarif import export_sarif
-from backend.reviewer.findings.schema import Finding
+from backend.reviewer.findings.schema import Finding, infer_tool
 from backend.reviewer.guardrails.injection_guard import injection_findings, wrap_untrusted_data
 from backend.reviewer.guardrails.redact import redact_secrets
 from backend.reviewer.guardrails.tool_allowlist import ToolGuard
@@ -44,6 +44,28 @@ def evaluate_gate(findings: list[Finding], is_docs_only: bool = False) -> tuple[
     ]
     any_highs = [f for f in active if f.severity in {"Critical", "High"}]
     return ("BLOCK", 2) if (ot_highs or any_highs) else ("PASS", 0)
+
+
+def compute_tool_breakdown(findings: list[Finding]) -> dict[str, Any]:
+    """White-box developer telemetry: breakdown of findings across static & domain tools."""
+    tools: dict[str, dict[str, Any]] = {
+        "OT Write Guard": {"total": 0, "high_critical": 0, "rules": []},
+        "Gitleaks": {"total": 0, "high_critical": 0, "rules": []},
+        "Trivy": {"total": 0, "high_critical": 0, "rules": []},
+        "Semgrep": {"total": 0, "high_critical": 0, "rules": []},
+        "MES Domain Checks": {"total": 0, "high_critical": 0, "rules": []},
+        "Injection Guard": {"total": 0, "high_critical": 0, "rules": []},
+    }
+    for f in findings:
+        t_name = f.tool or infer_tool(f.check_id, f.rule)
+        if t_name not in tools:
+            tools[t_name] = {"total": 0, "high_critical": 0, "rules": []}
+        tools[t_name]["total"] += 1
+        if f.severity in {"Critical", "High"} and f.status != "SUPPRESSED":
+            tools[t_name]["high_critical"] += 1
+        if f.rule not in tools[t_name]["rules"]:
+            tools[t_name]["rules"].append(f.rule)
+    return tools
 
 
 def run_review(
@@ -195,6 +217,7 @@ def run_review(
     ot_checks = summarize_ot_checks([f for f in final_findings if f.check_id == "OT-001" or f.rule == "UNPARSABLE_FLOW"])  # type: ignore[arg-type]
     elapsed = round(time.perf_counter() - t_start, 4)
     cost_summary = cost_tracker.summary()
+    tool_breakdown = compute_tool_breakdown(final_findings)
 
     state = {
         "run_id": active_run_id,
@@ -211,6 +234,7 @@ def run_review(
         "verdict": verdict,
         "exit_code": exit_code,
         "cost_summary": cost_summary,
+        "tool_breakdown": tool_breakdown,
         "duration_sec": elapsed,
     }
     if persist:
@@ -223,6 +247,7 @@ def _persist_run(state: dict[str, Any], db_url: str | None = None, branch: str =
     run_id = state["run_id"]
     for f in state.get("final_findings", []):
         store.save_finding(f.to_dict(), run_id=run_id)
+    tool_breakdown = state.get("tool_breakdown") or compute_tool_breakdown(state.get("final_findings", []))
     store.save_run(
         run_id=run_id,
         repo=state["repo"],
@@ -238,6 +263,8 @@ def _persist_run(state: dict[str, Any], db_url: str | None = None, branch: str =
         summary={
             "is_docs_only": state.get("is_docs_only", False),
             "blast_ratio": state.get("blast_ratio", 0.0),
+            "tool_breakdown": tool_breakdown,
+            "cost_summary": state.get("cost_summary", {}),
         },
     )
 

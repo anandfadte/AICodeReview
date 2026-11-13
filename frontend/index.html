@@ -1,40 +1,50 @@
-<!-- This UI will be migrated later. Backend APIs in backend/app.py are frozen. DB migration SQLite -> Postgres is config-only. -->
+<!-- LineTrack Reviewer — White-Box Developer Dashboard -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>LineTrack Reviewer — OT Safety & Compliance Gate</title>
+  <title>LineTrack Reviewer — White-Box Developer Dashboard &amp; Multi-Tool Analysis</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen font-sans">
-  <header class="border-b border-slate-800 bg-slate-900">
-    <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-      <div>
-        <h1 class="text-xl font-bold tracking-tight text-white">LineTrack Reviewer</h1>
-        <p class="text-xs text-slate-400">Deterministic-First OT Safety, MES &amp; Security Audit Gate (SQLite MVP)</p>
+  <!-- Header -->
+  <header class="border-b border-slate-800 bg-slate-900 sticky top-0 z-30 shadow-md">
+    <div class="max-w-6xl mx-auto px-6 py-3.5 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="h-8 w-8 rounded-lg bg-sky-600 flex items-center justify-center font-bold text-white text-base shadow">LT</div>
+        <div>
+          <h1 class="text-base font-bold tracking-tight text-white flex items-center gap-2">
+            LineTrack Reviewer
+            <span class="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-sky-950 text-sky-300 border border-sky-800">Developer White-Box</span>
+          </h1>
+          <p class="text-xs text-slate-400">Deterministic-First Multi-Tool Security, OT Safety &amp; MES Audit Gate</p>
+        </div>
       </div>
-      <span id="healthBadge" class="px-2.5 py-1 text-xs rounded-full bg-slate-800 text-slate-300 border border-slate-700">
-        API: Checking...
-      </span>
+      <div class="flex items-center gap-2">
+        <span id="creditProtectBadge" class="hidden sm:inline-flex px-2.5 py-1 text-xs rounded-full bg-emerald-950 text-emerald-300 border border-emerald-700 font-mono">
+          Budget Guard: &le; $0.05 / 3 calls
+        </span>
+        <span id="healthBadge" class="px-2.5 py-1 text-xs rounded-full bg-slate-800 text-slate-300 border border-slate-700 font-mono">
+          API: Checking...
+        </span>
+      </div>
     </div>
   </header>
 
-  <main class="max-w-6xl mx-auto px-6 py-8 space-y-6">
-    <!-- Action Bar + Repository Input + Verdict -->
-    <section class="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-4">
-      <div class="flex flex-wrap items-center justify-between gap-4">
+  <main class="max-w-6xl mx-auto px-6 py-6 space-y-6">
+
+    <!-- Section 1: Ingestion & Run Controls -->
+    <section class="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4">
+      <div class="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 class="text-lg font-semibold text-white">Review Gate &amp; Deterministic Scanners</h2>
-          <p class="text-sm text-slate-400 mt-1">
-            Audit any local folder, cloned repository, or Git HTTPS URL. Findings are persisted in SQLite (<code class="text-sky-400">reviewer.db</code>).
+          <h2 class="text-base font-semibold text-white">Repository Ingestion &amp; Audit Execution</h2>
+          <p class="text-xs text-slate-400 mt-0.5">
+            Audit any local folder, cloned repository, or remote Git HTTPS repository URL into SQLite (<code class="text-sky-400">reviewer.db</code>).
           </p>
         </div>
         <div class="flex items-center gap-2">
-          <span class="px-2.5 py-1 text-xs rounded bg-emerald-950 text-emerald-300 border border-emerald-700 font-mono">
-            Cost Guard: Capped &le; $0.05 / 3 calls (Air-Gap Default)
-          </span>
-          <span id="verdictBadge" class="px-3 py-1.5 text-sm font-semibold rounded-lg bg-slate-800 text-slate-300 border border-slate-700">
+          <span id="verdictBadge" class="px-3 py-1 text-sm font-semibold rounded-lg bg-slate-800 text-slate-300 border border-slate-700 font-mono">
             NO RUN YET
           </span>
         </div>
@@ -47,10 +57,10 @@
           <input id="repoPathInput" type="text" value="sample_repo" placeholder="e.g. https://github.com/owner/repo or C:\path\to\repo" class="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-sm text-white focus:outline-none focus:border-sky-500 font-mono">
         </div>
 
-        <div class="w-48">
+        <div class="w-52">
           <label class="block text-xs uppercase font-semibold text-slate-400 mb-1">Audit Mode (Token Control)</label>
           <select id="reviewModeSelect" class="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-sm text-white focus:outline-none focus:border-sky-500">
-            <option value="airgap" selected>Air-Gap ($0 Offline - Safe)</option>
+            <option value="airgap" selected>Air-Gap ($0 Offline - 0 Tokens)</option>
             <option value="pr">PR Mode (Diff, &le; $0.05 cap)</option>
             <option value="full">Full Audit (&le; $0.05 cap)</option>
           </select>
@@ -78,74 +88,178 @@
             Download SARIF
           </button>
           <button id="downloadReportBtn" onclick="downloadReport()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 font-medium text-slate-200 border border-slate-700">
-            Download Report
+            Download Report (HTML)
           </button>
           <button id="viewAuditBtn" onclick="loadAuditReport()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 font-medium text-sky-300 border border-slate-700">
             View Full Audit
           </button>
         </div>
-        <span id="activeRepoLabel" class="text-slate-400 font-mono">Target: sample_repo</span>
+        <span id="activeRepoLabel" class="text-slate-400 font-mono text-xs">Target: sample_repo</span>
+      </div>
+    </section>
+
+    <!-- Section 2: Real-Time API Cost & Token Telemetry Strip -->
+    <section class="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-3">
+      <div class="flex items-center justify-between">
+        <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+          <span class="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          Per-Request API Cost &amp; Token Telemetry (White-Box Provisioning)
+        </h3>
+        <span class="text-xs font-mono text-slate-400">Zero-Token Default &bull; Capped Protection</span>
+      </div>
+
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+        <!-- Cost Card -->
+        <div class="p-3.5 rounded-lg bg-slate-950 border border-slate-800">
+          <div class="text-slate-400 font-medium">Request API Cost</div>
+          <div id="costValue" class="mt-1 font-mono text-xl font-bold text-emerald-400">$0.000000</div>
+          <div id="costSubtext" class="text-[11px] text-slate-500 mt-0.5">Air-Gap: $0.00 (Zero tokens)</div>
+        </div>
+
+        <!-- Token Usage Card -->
+        <div class="p-3.5 rounded-lg bg-slate-950 border border-slate-800">
+          <div class="text-slate-400 font-medium">Tokens Consumed</div>
+          <div id="tokenTotalValue" class="mt-1 font-mono text-xl font-bold text-sky-400">0</div>
+          <div id="tokenBreakdown" class="text-[11px] text-slate-500 mt-0.5">Prompt: 0 &bull; Completion: 0</div>
+        </div>
+
+        <!-- LLM Calls Card -->
+        <div class="p-3.5 rounded-lg bg-slate-950 border border-slate-800">
+          <div class="text-slate-400 font-medium">LLM Invocations</div>
+          <div id="llmCallsValue" class="mt-1 font-mono text-xl font-bold text-slate-200">0 / 3 max</div>
+          <div class="text-[11px] text-slate-500 mt-0.5">Tier: gpt-4o-mini / offline fallback</div>
+        </div>
+
+        <!-- Circuit Breaker Status -->
+        <div class="p-3.5 rounded-lg bg-slate-950 border border-slate-800">
+          <div class="text-slate-400 font-medium">Budget Circuit Breaker</div>
+          <div id="circuitBreakerBadge" class="mt-1 font-mono text-sm font-semibold text-emerald-400 flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-emerald-400"></span> ACTIVE (Cap: $0.05)
+          </div>
+          <div class="text-[11px] text-slate-500 mt-0.5">Automated cut-off prevents overspend</div>
+        </div>
       </div>
     </section>
 
     <!-- Injection Alert Banner (Amber) -->
-    <div id="injectionBanner" class="hidden p-4 rounded-xl bg-amber-950/70 border border-amber-600 text-amber-200 text-sm flex items-center justify-between">
+    <div id="injectionBanner" class="hidden p-4 rounded-xl bg-amber-950/70 border border-amber-600 text-amber-200 text-xs flex items-center justify-between">
       <div>
         <span class="font-bold">INJECTION_ATTEMPT Flagged:</span>
-        Untrusted log/code/PR text attempted instruction override and was isolated as data only.
+        Untrusted log, PR description, or comment attempted instruction override and was safely isolated as data only.
       </div>
       <span class="px-2 py-0.5 text-xs font-mono rounded bg-amber-900 text-amber-100">Spec P5</span>
     </div>
 
-    <!-- Last PR Run Summary -->
-    <section class="bg-slate-900 border border-slate-800 rounded-xl p-5 flex flex-wrap items-center justify-between gap-3 text-xs">
-      <div class="flex items-center gap-3">
-        <span class="font-semibold uppercase tracking-wider text-slate-400">Last PR Run</span>
-        <span id="lastPrLabel" class="font-mono text-slate-200">PR #— | Verdict: —</span>
+    <!-- Section 3: Individual Analysis (Multi-Tool Probes Breakdown) -->
+    <section class="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4">
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h3 class="text-sm font-semibold uppercase tracking-wider text-white">Individual Tools Analysis (White-Box Probes)</h3>
+          <p class="text-xs text-slate-400 mt-0.5">
+            Independent static code analysis, AST checks, secret hunters, and SCA engines running in parallel. Click any card to filter findings.
+          </p>
+        </div>
+        <button onclick="setToolFilter('All')" id="toolFilterResetBtn" class="px-2.5 py-1 text-xs rounded bg-sky-600 text-white font-medium">
+          Show All Tools
+        </button>
       </div>
-      <span id="lastCheckLink" class="font-mono text-sky-400">GitHub Check: —</span>
+
+      <div id="toolCardsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-xs">
+        <!-- Rendered dynamically via renderToolCards() -->
+      </div>
     </section>
 
-    <!-- OT Guard 5-Check Panel -->
-    <section class="bg-slate-900 border border-slate-800 rounded-xl p-6">
-      <div class="flex items-center justify-between mb-4">
-        <h3 class="text-sm font-semibold uppercase tracking-wider text-slate-300">OT Write Guard — 5 Mandatory Controls</h3>
+    <!-- Section 4: Combined Multi-Tool Synthesis & White-Box Logic -->
+    <section class="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-3">
+      <div class="flex items-center justify-between">
+        <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-300">
+          Combined Multi-Tool Pipeline &amp; Holistic Synthesis
+        </h3>
+        <span class="text-[11px] font-mono text-sky-400">Deterministic &rarr; Specialists &rarr; Judge &rarr; Gate</span>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-2 text-xs">
+        <div class="p-3 rounded-lg bg-slate-950 border border-slate-800/80 space-y-1">
+          <div class="font-semibold text-sky-400 font-mono">1. Probes (Layer 1)</div>
+          <div class="text-slate-300 font-medium">Individual Static Scanners</div>
+          <p class="text-[11px] text-slate-400">Gitleaks, Semgrep, Trivy, OT Write Guard &amp; MES checks scan code with zero hallucination.</p>
+        </div>
+
+        <div class="p-3 rounded-lg bg-slate-950 border border-slate-800/80 space-y-1">
+          <div class="font-semibold text-purple-400 font-mono">2. Context (Layer 2)</div>
+          <div class="text-slate-300 font-medium">Domain Specialist Agents</div>
+          <p class="text-[11px] text-slate-400">Security, OT Safety, MES &amp; Privacy agents correlate signals across blast radius.</p>
+        </div>
+
+        <div class="p-3 rounded-lg bg-slate-950 border border-slate-800/80 space-y-1">
+          <div class="font-semibold text-amber-400 font-mono">3. Judge (Layer 3)</div>
+          <div class="text-slate-300 font-medium">Deterministic Re-Verification</div>
+          <p class="text-[11px] text-slate-400">Deterministic probes re-verify high findings. Non-reproducible claims are downgraded.</p>
+        </div>
+
+        <div class="p-3 rounded-lg bg-slate-950 border border-slate-800/80 space-y-1">
+          <div class="font-semibold text-emerald-400 font-mono">4. Gate (Layer 4)</div>
+          <div class="text-slate-300 font-medium">Zero-Tolerance Release Gate</div>
+          <p class="text-[11px] text-slate-400">Plain-Python gate enforces exit code: PASS (exit 0) or BLOCK (exit 2 if any verified High remains).</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 5: OT Write Guard 5 Mandatory Controls -->
+    <section class="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-3">
+      <div class="flex items-center justify-between">
+        <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-300">OT Write Guard — 5 Mandatory Safety Controls</h3>
         <span id="runMeta" class="text-xs text-slate-400 font-mono">run_id: —</span>
       </div>
       <div id="otChecksGrid" class="grid grid-cols-2 sm:grid-cols-5 gap-3"></div>
     </section>
 
-    <!-- Findings List + Vanilla JS Filter -->
-    <section class="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-4">
+    <!-- Section 6: Findings List with Interactive Dual Filters (Severity & Tool) -->
+    <section class="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4">
       <div class="flex flex-wrap items-center justify-between gap-3">
-        <h3 class="text-sm font-semibold uppercase tracking-wider text-slate-300">Findings</h3>
-        <div class="flex items-center gap-2 text-xs">
-          <button onclick="setFilter('All')" class="filter-btn px-3 py-1.5 rounded-md bg-sky-600 text-white font-medium" data-filter="All">All</button>
-          <button onclick="setFilter('High')" class="filter-btn px-3 py-1.5 rounded-md bg-slate-800 text-slate-300 hover:bg-slate-700" data-filter="High">High / Critical</button>
-          <button onclick="setFilter('Medium')" class="filter-btn px-3 py-1.5 rounded-md bg-slate-800 text-slate-300 hover:bg-slate-700" data-filter="Medium">Medium</button>
-          <button onclick="setFilter('Low')" class="filter-btn px-3 py-1.5 rounded-md bg-slate-800 text-slate-300 hover:bg-slate-700" data-filter="Low">Low</button>
+        <div class="flex items-center gap-2">
+          <h3 class="text-sm font-semibold uppercase tracking-wider text-white">Findings</h3>
+          <span id="findingsCountBadge" class="px-2 py-0.5 text-xs rounded-full bg-slate-800 text-slate-300 font-mono">0</span>
+        </div>
+
+        <!-- Filter Controls -->
+        <div class="flex flex-wrap items-center gap-3 text-xs">
+          <!-- Tool Filter Pill Indicator -->
+          <div class="flex items-center gap-1.5 text-slate-400">
+            <span>Tool:</span>
+            <span id="activeToolFilterLabel" class="px-2 py-0.5 rounded bg-slate-800 text-white font-mono font-medium">All Tools</span>
+          </div>
+
+          <!-- Severity Filters -->
+          <div class="flex items-center gap-1">
+            <button onclick="setFilter('All')" class="filter-btn px-2.5 py-1 rounded bg-sky-600 text-white font-medium" data-filter="All">All</button>
+            <button onclick="setFilter('High')" class="filter-btn px-2.5 py-1 rounded bg-slate-800 text-slate-300 hover:bg-slate-700" data-filter="High">High / Critical</button>
+            <button onclick="setFilter('Medium')" class="filter-btn px-2.5 py-1 rounded bg-slate-800 text-slate-300 hover:bg-slate-700" data-filter="Medium">Medium</button>
+            <button onclick="setFilter('Low')" class="filter-btn px-2.5 py-1 rounded bg-slate-800 text-slate-300 hover:bg-slate-700" data-filter="Low">Low</button>
+          </div>
         </div>
       </div>
+
       <div id="findingsList" class="space-y-3 text-sm text-slate-400">
-        No findings loaded yet. Click "Run on Sample Repo".
+        No findings loaded yet. Click "Audit Repository" or "Sample Repo".
       </div>
     </section>
 
-    <!-- Judge Verification Log Panel -->
-    <section class="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-3">
+    <!-- Section 7: Judge Verification Log Panel -->
+    <section class="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-3">
       <div class="flex flex-wrap items-center justify-between gap-2">
-        <h3 class="text-sm font-semibold uppercase tracking-wider text-slate-300">Judge Verification Log</h3>
-        <span class="text-xs font-mono text-slate-400">Scanners &rarr; Agents &rarr; Judge Re-ran &rarr; Reproduced / Downgraded</span>
+        <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-300">Judge Verification Log (White-Box Audit Trail)</h3>
+        <span class="text-[11px] font-mono text-slate-400">Candidate Probes &rarr; Re-run AST/Regex &rarr; Reproduced vs Downgraded</span>
       </div>
       <div id="judgeLogList" class="space-y-2 text-xs text-slate-400">
         No Judge entries yet.
       </div>
     </section>
 
-    <!-- Full Audit: Traceability Matrix + UNVERIFIED Controls -->
-    <section class="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-6">
+    <!-- Section 8: Full Audit: Traceability Matrix & UNVERIFIED Controls -->
+    <section class="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-5">
       <div class="flex items-center justify-between">
-        <h3 class="text-sm font-semibold uppercase tracking-wider text-slate-300">Full Audit — Traceability &amp; UNVERIFIED Controls</h3>
+        <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-300">Full Audit — Traceability &amp; UNVERIFIED Controls</h3>
         <button onclick="loadAuditReport()" class="px-2.5 py-1 text-xs rounded bg-slate-800 hover:bg-slate-700 text-slate-200">Refresh Audit</button>
       </div>
       <div class="overflow-x-auto">
@@ -163,10 +277,11 @@
         </table>
       </div>
     </section>
-    <!-- Evaluation Metrics Table -->
-    <section class="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-4">
+
+    <!-- Section 9: Golden Set Evaluation (30 Cases) -->
+    <section class="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4">
       <div class="flex items-center justify-between">
-        <h3 class="text-sm font-semibold uppercase tracking-wider text-slate-300">Golden Set Evaluation (30 Cases)</h3>
+        <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-300">Golden Set Evaluation Benchmark (30 Cases)</h3>
         <button onclick="loadEval()" class="px-2.5 py-1 text-xs rounded bg-slate-800 hover:bg-slate-700 text-slate-200">Run Evaluation</button>
       </div>
       <div class="overflow-x-auto">
@@ -180,10 +295,11 @@
         </table>
       </div>
     </section>
+
   </main>
 
   <script>
-    // Pure Vanilla JS — talks only to frozen FastAPI JSON endpoints
+    // Pure Vanilla JS — talks strictly to frozen FastAPI JSON endpoints
     const API_BASE = window.LINETRACK_API || "http://localhost:8000";
     const OT_LABELS = [
       ["allowlist", "Allow-list"],
@@ -192,9 +308,21 @@
       ["interlock", "Interlock"],
       ["audit", "Audit Log"]
     ];
+
+    const TOOL_DEFINITIONS = [
+      { name: "OT Write Guard", probe: "AST Control Flow", desc: "5 mandatory safety controls on PLC register writes (Clamp, Auth, Allow-list, Interlock, Audit)", color: "purple" },
+      { name: "Gitleaks", probe: "Regex Secret Hunter", desc: "Detects high-entropy credentials, AWS tokens, passwords, and private keys", color: "amber" },
+      { name: "Trivy", probe: "SCA Vulnerabilities", desc: "Software composition analysis for CVEs, vulnerable libraries, and missing SBOM", color: "rose" },
+      { name: "Semgrep", probe: "SAST / AST Rules", desc: "Static pattern & AST rules checking for SQL injections, IDOR, and missing RBAC checks", color: "sky" },
+      { name: "MES Domain Checks", probe: "Industrial AST Checks", desc: "Checks for OEE division-by-zero, batch recipe drift, and genealogy orphan parts", color: "emerald" },
+      { name: "Injection Guard", probe: "Adversarial Filter", desc: "Isolates and defuses prompt injection attempts in untrusted PR text and commit logs", color: "yellow" }
+    ];
+
     let currentRunId = "";
     let currentFindings = [];
     let activeFilter = "All";
+    let activeToolFilter = "All";
+    let currentToolBreakdown = {};
 
     function escapeHtml(str) {
       return String(str || "")
@@ -209,10 +337,10 @@
         const res = await fetch(`${API_BASE}/health`);
         const data = await res.json();
         el.textContent = `API: ${data.status.toUpperCase()} (${data.db})`;
-        el.className = "px-2.5 py-1 text-xs rounded-full bg-emerald-950 text-emerald-300 border border-emerald-700";
+        el.className = "px-2.5 py-1 text-xs rounded-full bg-emerald-950 text-emerald-300 border border-emerald-700 font-mono";
       } catch (err) {
         el.textContent = "API: Offline";
-        el.className = "px-2.5 py-1 text-xs rounded-full bg-rose-950 text-rose-300 border border-rose-700";
+        el.className = "px-2.5 py-1 text-xs rounded-full bg-rose-950 text-rose-300 border border-rose-700 font-mono";
       }
     }
 
@@ -241,14 +369,119 @@
       return map[sev] || map.Info;
     }
 
+    function toolBadge(toolName) {
+      const map = {
+        "OT Write Guard": "bg-purple-950 text-purple-300 border-purple-700",
+        "Gitleaks": "bg-amber-950 text-amber-300 border-amber-700",
+        "Trivy": "bg-rose-950 text-rose-300 border-rose-700",
+        "Semgrep": "bg-sky-950 text-sky-300 border-sky-700",
+        "MES Domain Checks": "bg-emerald-950 text-emerald-300 border-emerald-700",
+        "Injection Guard": "bg-yellow-950 text-yellow-300 border-yellow-700"
+      };
+      return map[toolName] || "bg-slate-800 text-slate-300 border-slate-700";
+    }
+
+    function updateCostTelemetry(run) {
+      const summary = run.summary || {};
+      const costSummary = summary.cost_summary || {};
+      const costUsd = Number(costSummary.total_cost_usd !== undefined ? costSummary.total_cost_usd : (run.cost_usd || 0));
+      const promptTok = costSummary.prompt_tokens || 0;
+      const compTok = costSummary.completion_tokens || 0;
+      const totalTok = costSummary.total_tokens !== undefined ? costSummary.total_tokens : (promptTok + compTok);
+      const calls = costSummary.llm_calls !== undefined ? costSummary.llm_calls : 0;
+      const cbStatus = costSummary.circuit_breaker_status || "NORMAL";
+
+      const costEl = document.getElementById("costValue");
+      const costSub = document.getElementById("costSubtext");
+      costEl.textContent = `$${costUsd.toFixed(6)}`;
+      if (run.mode === "airgap" || costUsd === 0) {
+        costEl.className = "mt-1 font-mono text-xl font-bold text-emerald-400";
+        costSub.textContent = "Air-Gap: $0.00 (Zero cloud tokens consumed)";
+      } else {
+        costEl.className = "mt-1 font-mono text-xl font-bold text-sky-400";
+        costSub.textContent = `Mode: ${run.mode} (Billed to OpenAI account)`;
+      }
+
+      document.getElementById("tokenTotalValue").textContent = totalTok.toLocaleString();
+      document.getElementById("tokenBreakdown").textContent = `Prompt: ${promptTok.toLocaleString()} \u2022 Completion: ${compTok.toLocaleString()}`;
+      document.getElementById("llmCallsValue").textContent = `${calls} / 3 max`;
+
+      const cbEl = document.getElementById("circuitBreakerBadge");
+      if (cbStatus === "TRIPPED") {
+        cbEl.innerHTML = `<span class="w-2 h-2 rounded-full bg-rose-500"></span> TRIPPED (Cap $0.05 reached)`;
+        cbEl.className = "mt-1 font-mono text-sm font-semibold text-rose-400 flex items-center gap-1.5";
+      } else {
+        cbEl.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-400"></span> ACTIVE (Cap: $0.05 / 3 calls)`;
+        cbEl.className = "mt-1 font-mono text-sm font-semibold text-emerald-400 flex items-center gap-1.5";
+      }
+    }
+
+    function renderToolCards(findings) {
+      // Build tool stats from current findings
+      const counts = {};
+      TOOL_DEFINITIONS.forEach(t => {
+        counts[t.name] = { total: 0, high: 0, rules: new Set() };
+      });
+
+      findings.forEach(f => {
+        const t = f.tool || "MES Domain Checks";
+        if (!counts[t]) counts[t] = { total: 0, high: 0, rules: new Set() };
+        counts[t].total += 1;
+        if ((f.severity === "High" || f.severity === "Critical") && f.status !== "SUPPRESSED") {
+          counts[t].high += 1;
+        }
+        if (f.rule) counts[t].rules.add(f.rule);
+      });
+
+      currentToolBreakdown = counts;
+      const grid = document.getElementById("toolCardsGrid");
+      grid.innerHTML = TOOL_DEFINITIONS.map(tool => {
+        const data = counts[tool.name] || { total: 0, high: 0, rules: new Set() };
+        const isSelected = activeToolFilter === tool.name;
+        const activeBorder = isSelected ? "ring-2 ring-sky-500 border-sky-500" : "border-slate-800 hover:border-slate-700";
+        const highBadge = data.high > 0 ? `<span class="px-1.5 py-0.5 rounded text-[10px] bg-rose-950 text-rose-300 border border-rose-800 font-mono font-semibold">${data.high} High/Crit</span>` : "";
+        const rulesCount = data.rules.size;
+
+        return `
+          <div onclick="setToolFilter('${escapeHtml(tool.name)}')" class="p-4 rounded-lg bg-slate-950 border ${activeBorder} cursor-pointer transition flex flex-col justify-between space-y-3">
+            <div>
+              <div class="flex items-center justify-between gap-2">
+                <span class="px-2 py-0.5 rounded text-[11px] font-semibold border ${toolBadge(tool.name)}">${escapeHtml(tool.name)}</span>
+                <span class="font-mono text-xs text-slate-400">${escapeHtml(tool.probe)}</span>
+              </div>
+              <p class="text-slate-400 text-[11px] mt-2 line-clamp-2">${escapeHtml(tool.desc)}</p>
+            </div>
+            <div class="pt-2 border-t border-slate-800/80 flex items-center justify-between">
+              <div class="flex items-center gap-1.5">
+                <span class="font-bold text-white text-sm font-mono">${data.total}</span>
+                <span class="text-slate-400 text-xs">findings</span>
+                ${highBadge}
+              </div>
+              <span class="text-[11px] text-sky-400 font-medium">${isSelected ? "Filtered &check;" : "Filter &rarr;"}</span>
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
     function setFilter(filter) {
       activeFilter = filter;
       document.querySelectorAll(".filter-btn").forEach((btn) => {
         const active = btn.dataset.filter === filter;
         btn.className = active
-          ? "filter-btn px-3 py-1.5 rounded-md bg-sky-600 text-white font-medium"
-          : "filter-btn px-3 py-1.5 rounded-md bg-slate-800 text-slate-300 hover:bg-slate-700";
+          ? "filter-btn px-2.5 py-1 rounded bg-sky-600 text-white font-medium"
+          : "filter-btn px-2.5 py-1 rounded bg-slate-800 text-slate-300 hover:bg-slate-700";
       });
+      renderFindings();
+    }
+
+    function setToolFilter(toolName) {
+      activeToolFilter = (activeToolFilter === toolName && toolName !== "All") ? "All" : toolName;
+      document.getElementById("activeToolFilterLabel").textContent = activeToolFilter === "All" ? "All Tools" : activeToolFilter;
+      document.getElementById("toolFilterResetBtn").className = activeToolFilter === "All"
+        ? "px-2.5 py-1 text-xs rounded bg-sky-600 text-white font-medium"
+        : "px-2.5 py-1 text-xs rounded bg-slate-800 text-slate-300 hover:bg-slate-700";
+      renderToolCards(currentFindings);
       renderFindings();
     }
 
@@ -257,50 +490,75 @@
       const btn = document.getElementById(`toggle-${idx}`);
       if (!box) return;
       const hidden = box.classList.toggle("hidden");
-      btn.textContent = hidden ? "Show" : "Hide";
+      btn.textContent = hidden ? "Show Details" : "Hide Details";
     }
 
     function renderFindings() {
       const container = document.getElementById("findingsList");
       const filtered = currentFindings.filter((f) => {
+        // Tool filter
+        if (activeToolFilter !== "All" && (f.tool || "MES Domain Checks") !== activeToolFilter) {
+          return false;
+        }
+        // Severity filter
         if (activeFilter === "All") return true;
         if (activeFilter === "High") return f.severity === "High" || f.severity === "Critical";
         return f.severity === activeFilter;
       });
+
+      document.getElementById("findingsCountBadge").textContent = `${filtered.length} of ${currentFindings.length}`;
+
       if (!filtered.length) {
-        container.innerHTML = `<div class="p-4 rounded-lg bg-slate-950 border border-slate-800 text-slate-400">No findings match filter "${activeFilter}".</div>`;
+        container.innerHTML = `
+          <div class="p-6 rounded-lg bg-slate-950 border border-slate-800 text-slate-400 text-center space-y-1">
+            <p>No findings match filter (Severity: "${escapeHtml(activeFilter)}", Tool: "${escapeHtml(activeToolFilter)}").</p>
+            <p class="text-xs text-slate-500">Click "Show All Tools" or clear filters to view all issues.</p>
+          </div>
+        `;
         return;
       }
-      container.innerHTML = filtered.map((f, idx) => `
-        <article class="p-4 rounded-lg bg-slate-950 border border-slate-800 space-y-2">
-          <div class="flex flex-wrap items-center justify-between gap-2">
-            <div class="flex items-center gap-2">
-              <span class="px-2 py-0.5 text-xs font-semibold rounded border ${severityBadge(f.severity)}">${escapeHtml(f.severity)}</span>
-              <span class="font-semibold text-white">${escapeHtml(f.check_id)} / ${escapeHtml(f.rule)}</span>
-              <span class="font-mono text-xs text-sky-400">${escapeHtml(f.file)}:${f.line}</span>
-              ${f.status === "SUPPRESSED" ? `<span class="px-2 py-0.5 text-xs rounded bg-slate-800 text-amber-300 border border-amber-700">SUPPRESSED</span>` : ""}
+
+      container.innerHTML = filtered.map((f, idx) => {
+        const toolName = f.tool || "MES Domain Checks";
+        return `
+          <article class="p-4 rounded-lg bg-slate-950 border border-slate-800 space-y-2.5">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div class="flex flex-wrap items-center gap-2">
+                <span class="px-2 py-0.5 text-xs font-semibold rounded border ${toolBadge(toolName)}">${escapeHtml(toolName)}</span>
+                <span class="px-2 py-0.5 text-xs font-semibold rounded border ${severityBadge(f.severity)}">${escapeHtml(f.severity)}</span>
+                <span class="font-semibold text-white font-mono">${escapeHtml(f.check_id)} / ${escapeHtml(f.rule)}</span>
+                <span class="font-mono text-xs text-sky-400">${escapeHtml(f.file)}:${f.line}</span>
+                ${f.verified_deterministically ? `<span class="px-2 py-0.5 text-[10px] rounded bg-emerald-950 text-emerald-300 border border-emerald-800 font-mono">Verified Deterministically</span>` : `<span class="px-2 py-0.5 text-[10px] rounded bg-amber-950 text-amber-300 border border-amber-800 font-mono">Unverified (LLM Candidate)</span>`}
+                ${f.status === "SUPPRESSED" ? `<span class="px-2 py-0.5 text-xs rounded bg-slate-800 text-amber-300 border border-amber-700">SUPPRESSED</span>` : ""}
+              </div>
+              <div class="flex items-center gap-2">
+                ${f.status !== "SUPPRESSED" ? `<button onclick="suppressFinding('${escapeHtml(f.id)}')" class="px-2.5 py-1 text-xs rounded bg-amber-950 hover:bg-amber-900 text-amber-200 border border-amber-700">Suppress</button>` : ""}
+                <button id="toggle-${idx}" onclick="toggleDetails(${idx})" class="px-2.5 py-1 text-xs rounded bg-slate-800 hover:bg-slate-700 text-slate-200">
+                  Show Details
+                </button>
+              </div>
             </div>
-            <div class="flex items-center gap-2">
-              ${f.status !== "SUPPRESSED" ? `<button onclick="suppressFinding('${escapeHtml(f.id)}')" class="px-2.5 py-1 text-xs rounded bg-amber-950 hover:bg-amber-900 text-amber-200 border border-amber-700">Suppress</button>` : ""}
-              <button id="toggle-${idx}" onclick="toggleDetails(${idx})" class="px-2.5 py-1 text-xs rounded bg-slate-800 hover:bg-slate-700 text-slate-200">
-                Show
-              </button>
+            <p class="text-slate-300 text-xs">${escapeHtml(f.message)}</p>
+            <div id="detail-${idx}" class="hidden space-y-2 pt-2 border-t border-slate-800">
+              <div class="text-[11px] text-slate-400 font-medium">Code Evidence:</div>
+              <pre class="p-3 rounded bg-slate-900 text-slate-200 font-mono text-xs overflow-x-auto border border-slate-800">${escapeHtml(f.evidence)}</pre>
+              <div class="p-2.5 rounded bg-emerald-950/40 border border-emerald-900/60 text-xs text-emerald-300">
+                <span class="font-semibold">Remediation:</span> ${escapeHtml(f.fix)}
+              </div>
+              <div class="flex flex-wrap items-center justify-between text-xs text-slate-400 pt-1">
+                <span>Compliance Standards: ${escapeHtml((f.standards || []).join(", ") || "General OT/MES Policy")}</span>
+                <span class="font-mono text-[11px]">id: ${escapeHtml(f.id)}</span>
+              </div>
             </div>
-          </div>
-          <p class="text-slate-300 text-xs">${escapeHtml(f.message)}</p>
-          <div id="detail-${idx}" class="hidden space-y-2 pt-2 border-t border-slate-800">
-            <pre class="p-3 rounded bg-slate-900 text-slate-300 font-mono text-xs overflow-x-auto border border-slate-800">${escapeHtml(f.evidence)}</pre>
-            <p class="text-xs text-emerald-300"><span class="font-semibold">Fix:</span> ${escapeHtml(f.fix)}</p>
-            <p class="text-xs text-slate-400">Standards: ${escapeHtml((f.standards || []).join(", "))}</p>
-          </div>
-        </article>
-      `).join("");
+          </article>
+        `;
+      }).join("");
     }
 
     function renderJudgeLog(judgeLog) {
       const container = document.getElementById("judgeLogList");
       if (!judgeLog || !judgeLog.length) {
-        container.innerHTML = `<div class="text-slate-400">No High/Critical candidates judged yet.</div>`;
+        container.innerHTML = `<div class="text-slate-400 text-xs">No High/Critical candidates judged yet.</div>`;
         return;
       }
       container.innerHTML = judgeLog.map((j) => {
@@ -358,15 +616,19 @@
         const badge = document.getElementById("verdictBadge");
         badge.textContent = `${run.verdict} (exit ${run.exit_code})`;
         badge.className = run.verdict === "BLOCK"
-          ? "px-3 py-1.5 text-sm font-semibold rounded-lg bg-rose-950 text-rose-300 border border-rose-700"
-          : "px-3 py-1.5 text-sm font-semibold rounded-lg bg-emerald-950 text-emerald-300 border border-emerald-700";
+          ? "px-3 py-1 text-sm font-semibold rounded-lg bg-rose-950 text-rose-300 border border-rose-700 font-mono"
+          : "px-3 py-1 text-sm font-semibold rounded-lg bg-emerald-950 text-emerald-300 border border-emerald-700 font-mono";
+
         document.getElementById("runMeta").textContent = `run_id: ${run.run_id} | findings: ${run.findings_count} | cost: $${Number(run.cost_usd || 0).toFixed(4)}`;
         document.getElementById("injectionBanner").classList.toggle("hidden", !run.injection_detected);
+
+        updateCostTelemetry(run);
         renderOtChecks(run.ot_checks);
         renderJudgeLog(run.judge_log);
 
         const fRes = await fetch(`${API_BASE}/api/findings?run_id=${encodeURIComponent(run.run_id)}`);
         currentFindings = await fRes.json();
+        renderToolCards(currentFindings);
         renderFindings();
         loadLatestRun();
       } catch (err) {
@@ -379,13 +641,8 @@
       }
     }
 
-    async function runSampleReview() {
-      setPreset("sample_repo");
-      await runCustomReview();
-    }
-
     async function suppressFinding(findingId) {
-      const owner = window.prompt("Suppression owner (e.g. qa-lead):");
+      const owner = window.prompt("Suppression owner (e.g. lead-dev or qa-lead):");
       if (!owner) return;
       const reason = window.prompt("Suppression reason (auto-expires in 30 days):");
       if (!reason) return;
@@ -397,6 +654,7 @@
       if (res.ok && currentRunId) {
         const fRes = await fetch(`${API_BASE}/api/findings?run_id=${encodeURIComponent(currentRunId)}`);
         currentFindings = await fRes.json();
+        renderToolCards(currentFindings);
         renderFindings();
       }
     }
@@ -432,10 +690,10 @@
       const trBody = document.getElementById("traceabilityBody");
       unvBody.innerHTML = (report.unverified || []).map((u) => `
         <tr class="border-t border-slate-800">
-          <td class="py-2 pr-3 text-white">${escapeHtml(u.control)}</td>
+          <td class="py-2 pr-3 text-white font-mono">${escapeHtml(u.control)}</td>
           <td class="py-2 pr-3"><span class="px-2 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-700 font-mono">${escapeHtml(u.status)}</span></td>
           <td class="py-2 pr-3 text-slate-300">${escapeHtml(u.owner)}</td>
-          <td class="py-2 pr-3 text-slate-300">${escapeHtml(u.due_date)}</td>
+          <td class="py-2 pr-3 text-slate-300 font-mono">${escapeHtml(u.due_date)}</td>
           <td class="py-2 text-slate-400">${escapeHtml(u.required_evidence)}</td>
         </tr>
       `).join("") || `<tr><td colspan="5" class="py-2 text-slate-400">No data.</td></tr>`;
@@ -454,10 +712,24 @@
         const res = await fetch(`${API_BASE}/api/runs/latest`);
         if (!res.ok) return;
         const run = await res.json();
-        const prLabel = run.pr_number ? `PR #${run.pr_number}` : `Run ${run.run_id}`;
-        document.getElementById("lastPrLabel").textContent = `${prLabel} | Verdict: ${run.verdict}`;
-        const conclusion = run.verdict === "BLOCK" ? "failure" : "success";
-        document.getElementById("lastCheckLink").textContent = `GitHub Check: ${conclusion} (exit ${run.exit_code})`;
+        currentRunId = run.run_id;
+        const badge = document.getElementById("verdictBadge");
+        badge.textContent = `${run.verdict} (exit ${run.exit_code})`;
+        badge.className = run.verdict === "BLOCK"
+          ? "px-3 py-1 text-sm font-semibold rounded-lg bg-rose-950 text-rose-300 border border-rose-700 font-mono"
+          : "px-3 py-1 text-sm font-semibold rounded-lg bg-emerald-950 text-emerald-300 border border-emerald-700 font-mono";
+
+        document.getElementById("runMeta").textContent = `run_id: ${run.run_id} | findings: ${run.findings_count} | cost: $${Number(run.cost_usd || 0).toFixed(4)}`;
+        document.getElementById("injectionBanner").classList.toggle("hidden", !run.injection_detected);
+
+        updateCostTelemetry(run);
+        renderOtChecks(run.ot_checks);
+        renderJudgeLog(run.judge_log);
+
+        const fRes = await fetch(`${API_BASE}/api/findings?run_id=${encodeURIComponent(run.run_id)}`);
+        currentFindings = await fRes.json();
+        renderToolCards(currentFindings);
+        renderFindings();
       } catch (_) {}
     }
 
@@ -466,7 +738,7 @@
       if (!res.ok) return;
       const m = await res.json();
       document.getElementById("evalBody").innerHTML = `
-        <tr class="border-t border-slate-800 font-mono text-sm">
+        <tr class="border-t border-slate-800 font-mono text-xs">
           <td class="py-2 pr-4 text-emerald-300 font-bold">${Number(m.precision).toFixed(3)}</td>
           <td class="py-2 pr-4 text-emerald-300 font-bold">${Number(m.recall).toFixed(3)}</td>
           <td class="py-2 pr-4 text-slate-200">${Number(m.fp_rate).toFixed(3)}</td>
@@ -476,7 +748,9 @@
       `;
     }
 
+    // Initialize on load
     renderOtChecks({});
+    renderToolCards([]);
     checkHealth();
     loadLatestRun();
   </script>
