@@ -97,6 +97,10 @@ def load_prompt(prompt_name: str, prompts_dir: str | Path | None = None) -> str:
     raise FileNotFoundError(f"Prompt template not found: prompts/{prompt_name}.md")
 
 
+MAX_RUN_SPEND_USD = float(os.getenv("MAX_RUN_SPEND_USD", "0.05"))
+MAX_RUN_LLM_CALLS = int(os.getenv("MAX_RUN_LLM_CALLS", "3"))
+
+
 class LLMRouter:
     """Routes mini / review / judge calls to OpenAI, Azure OpenAI, local Ollama (airgap), or rule-only $0 fallback."""
 
@@ -109,14 +113,14 @@ class LLMRouter:
         if use_openai:
             self.models = {
                 "mini": os.getenv("OPENAI_MODEL_MINI", "gpt-4o-mini"),
-                "review": os.getenv("OPENAI_MODEL_REVIEW", "gpt-4o"),
-                "judge": os.getenv("OPENAI_MODEL_JUDGE", "gpt-4.1"),
+                "review": os.getenv("OPENAI_MODEL_REVIEW", "gpt-4o-mini"),
+                "judge": os.getenv("OPENAI_MODEL_JUDGE", "gpt-4o-mini"),
             }
         else:
             self.models = {
                 "mini": os.getenv("AZURE_DEPLOYMENT_MINI", "gpt-4o-mini"),
-                "review": os.getenv("AZURE_DEPLOYMENT_REVIEW", "gpt-4o"),
-                "judge": os.getenv("AZURE_DEPLOYMENT_JUDGE", "o3-frontier-judge"),
+                "review": os.getenv("AZURE_DEPLOYMENT_REVIEW", "gpt-4o-mini"),
+                "judge": os.getenv("AZURE_DEPLOYMENT_JUDGE", "gpt-4o-mini"),
             }
         if self.models["judge"] == self.models["review"]:
             self.models["judge"] = "gpt-4.1" if use_openai else f"{self.models['judge']}-frontier"
@@ -149,6 +153,16 @@ class LLMRouter:
                 "mode": "airgap_rule_only",
                 "model": "rule-only-fallback",
                 "text": "Offline air-gap rule-only verification.",
+                "injection_detected": inj_scan.detected,
+                "candidates": [],
+            }
+
+        # Cost Guard Circuit Breaker: Cap total spend and total calls per run
+        if self.cost_tracker.total_cost_usd >= MAX_RUN_SPEND_USD or self.cost_tracker.llm_calls >= MAX_RUN_LLM_CALLS:
+            return {
+                "mode": "circuit_breaker_tripped",
+                "model": f"{model_name} (budget-cap-offline)",
+                "text": f"Budget circuit breaker tripped (${self.cost_tracker.total_cost_usd:.4f} >= ${MAX_RUN_SPEND_USD:.2f} or {self.cost_tracker.llm_calls} calls). Deterministic fallback ($0.00).",
                 "injection_detected": inj_scan.detected,
                 "candidates": [],
             }

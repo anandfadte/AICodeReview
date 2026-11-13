@@ -31,6 +31,9 @@
           </p>
         </div>
         <div class="flex items-center gap-2">
+          <span class="px-2.5 py-1 text-xs rounded bg-emerald-950 text-emerald-300 border border-emerald-700 font-mono">
+            Cost Guard: Capped &le; $0.05 / 3 calls (Air-Gap Default)
+          </span>
           <span id="verdictBadge" class="px-3 py-1.5 text-sm font-semibold rounded-lg bg-slate-800 text-slate-300 border border-slate-700">
             NO RUN YET
           </span>
@@ -44,12 +47,12 @@
           <input id="repoPathInput" type="text" value="sample_repo" placeholder="e.g. https://github.com/owner/repo or C:\path\to\repo" class="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-sm text-white focus:outline-none focus:border-sky-500 font-mono">
         </div>
 
-        <div class="w-36">
-          <label class="block text-xs uppercase font-semibold text-slate-400 mb-1">Audit Mode</label>
+        <div class="w-48">
+          <label class="block text-xs uppercase font-semibold text-slate-400 mb-1">Audit Mode (Token Control)</label>
           <select id="reviewModeSelect" class="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-sm text-white focus:outline-none focus:border-sky-500">
-            <option value="pr" selected>PR Mode (Diff)</option>
-            <option value="full">Full Audit</option>
-            <option value="airgap">Air-Gap ($0 Offline)</option>
+            <option value="airgap" selected>Air-Gap ($0 Offline - Safe)</option>
+            <option value="pr">PR Mode (Diff, &le; $0.05 cap)</option>
+            <option value="full">Full Audit (&le; $0.05 cap)</option>
           </select>
         </div>
 
@@ -328,7 +331,7 @@
     async function runCustomReview() {
       const input = document.getElementById("repoPathInput");
       const repoPath = (input ? input.value : "").trim() || "sample_repo";
-      const mode = (document.getElementById("reviewModeSelect") || {}).value || "pr";
+      const mode = (document.getElementById("reviewModeSelect") || {}).value || "airgap";
       const branch = ((document.getElementById("branchInput") || {}).value || "").trim();
       const btn = document.getElementById("runReviewBtn");
 

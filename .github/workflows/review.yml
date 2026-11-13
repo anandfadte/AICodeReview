@@ -70,6 +70,7 @@ jobs:
           python -m backend.reviewer.reporting.github \
             --repo . \
             $BASE_ARG \
+            --mode airgap \
             --sarif /tmp/reviewer/findings.sarif \
             --comment-out /tmp/reviewer/pr_comment.md \
             --check-out /tmp/reviewer/check_payload.json \
