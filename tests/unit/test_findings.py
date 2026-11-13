@@ -99,3 +99,43 @@ def test_suppression_requires_owner_and_reason(tmp_path: Path) -> None:
         store.suppress_finding(fid, owner="", reason="missing owner")
     with pytest.raises(ValueError):
         store.suppress_finding(fid, owner="lead", reason="   ")
+
+
+def test_suppression_revocation_and_list(tmp_path: Path) -> None:
+    db_file = tmp_path / "rev.db"
+    db_url = f"sqlite:///{db_file}"
+    from backend.store import ReviewerStore
+
+    store = ReviewerStore(db_url=db_url, auto_create=True)
+    store.save_run(run_id="run-rev-1", repo="sample_repo", verdict="BLOCK", exit_code=2)
+    saved_ids = store.save_findings(_make_sample_findings(), run_id="run-rev-1")
+    target_id = saved_ids[0]
+
+    # Suppress finding
+    sup = store.suppress_finding(target_id, owner="qa-architect", reason="Temporary risk waiver")
+    assert sup["owner"] == "qa-architect"
+
+    # List suppressions
+    sups = store.get_suppressions(active_only=True)
+    assert len(sups) == 1
+    assert sups[0]["finding_id"] == target_id
+    assert sups[0]["owner"] == "qa-architect"
+    assert sups[0]["days_remaining"] >= 29
+
+    # Revoke suppression
+    revoked = store.revoke_suppression(target_id)
+    assert revoked is True
+
+    # Active suppressions should now be 0
+    active_sups = store.get_suppressions(active_only=True)
+    assert len(active_sups) == 0
+
+    # Historical suppressions should show it as inactive
+    all_sups = store.get_suppressions(active_only=False)
+    assert len(all_sups) == 1
+    assert all_sups[0]["active"] is False
+
+    # Finding status should be reverted to OPEN
+    f_list = store.get_findings(run_id="run-rev-1")
+    reopened = next(f for f in f_list if f["id"] == target_id)
+    assert reopened["status"] == "OPEN"

@@ -147,6 +147,91 @@ def suppress_finding_endpoint(finding_id: str, body: SuppressRequest) -> dict[st
     return {"finding_id": finding_id, "status": "SUPPRESSED", "suppression": sup}
 
 
+@app.post("/api/findings/{finding_id}/unsuppress")
+def unsuppress_finding_endpoint(finding_id: str) -> dict[str, Any]:
+    store = _get_store()
+    try:
+        success = store.revoke_suppression(finding_id=finding_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return {"finding_id": finding_id, "status": "OPEN", "revoked": success}
+
+
+@app.get("/api/suppressions")
+def list_suppressions(active_only: bool = Query(default=False)) -> list[dict[str, Any]]:
+    store = _get_store()
+    return store.get_suppressions(active_only=active_only)
+
+
+@app.get("/api/patch")
+def get_patch(run_id: str = Query(default=""), format: str = Query(default="diff")):
+    from collections import defaultdict
+
+    store = _get_store()
+    target_run = run_id or (store.get_latest_run() or {}).get("run_id")
+    if not target_run:
+        raise HTTPException(status_code=404, detail="No run available to generate patch.")
+
+    findings = store.get_findings(run_id=target_run, include_suppressed=False)
+
+    by_file: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for f in findings:
+        if f.get("fix") and f.get("file"):
+            by_file[f["file"]].append(f)
+
+    patches: list[str] = []
+    for filepath, file_findings in by_file.items():
+        file_patches = []
+        file_patches.append(f"--- a/{filepath}")
+        file_patches.append(f"+++ b/{filepath}")
+        for item in sorted(file_findings, key=lambda x: x.get("line", 1)):
+            line = item.get("line", 1)
+            evidence = (item.get("evidence") or "").strip()
+            fix = (item.get("fix") or "").strip()
+            rule = item.get("rule", "FIX")
+            check_id = item.get("check_id", "CHK")
+
+            file_patches.append(f"@@ -{line},1 +{line},1 @@ # {check_id} / {rule}")
+            if evidence:
+                for ev_line in evidence.splitlines():
+                    file_patches.append(f"-{ev_line}")
+            else:
+                file_patches.append(f"-# Line {line}: {rule} violation")
+            if fix:
+                for fix_line in fix.splitlines():
+                    file_patches.append(f"+{fix_line}")
+            else:
+                file_patches.append(f"+# TODO: Remediate {rule}")
+        patches.append("\n".join(file_patches))
+
+    patch_text = "\n\n".join(patches)
+    if not patch_text.strip():
+        patch_text = f"# LineTrack Reviewer Patch for run: {target_run}\n# No fixable findings recorded.\n"
+    else:
+        patch_text = (
+            f"# LineTrack Reviewer Remediation Patch\n"
+            f"# Generated for Run: {target_run}\n"
+            f"# Files modified: {len(by_file)} | Remediated findings: {sum(len(v) for v in by_file.values())}\n"
+            f"# Apply via: git apply remediation.patch\n\n"
+            + patch_text
+            + "\n"
+        )
+
+    if format == "json":
+        return {
+            "run_id": target_run,
+            "patch": patch_text,
+            "files_count": len(by_file),
+            "findings_count": sum(len(v) for v in by_file.values()),
+        }
+
+    return Response(
+        content=patch_text,
+        media_type="text/x-diff",
+        headers={"Content-Disposition": f'attachment; filename="linetrack-{target_run}.patch"'},
+    )
+
+
 @app.get("/api/sarif")
 def get_sarif(run_id: str = Query(default="")) -> dict[str, Any]:
     store = _get_store()

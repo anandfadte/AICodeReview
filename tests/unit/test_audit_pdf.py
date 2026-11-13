@@ -56,6 +56,28 @@ def test_report_api_endpoint_json_and_html_download() -> None:
     assert "UNVERIFIED Controls" in res_html.text
 
 
+def test_api_patch_and_suppression_endpoints() -> None:
+    client = TestClient(app)
+    # Patch endpoint in diff and json formats
+    patch_diff = client.get("/api/patch")
+    assert patch_diff.status_code in (200, 404)
+    if patch_diff.status_code == 200:
+        assert "text/x-diff" in patch_diff.headers["content-type"]
+        assert "attachment" in patch_diff.headers["content-disposition"]
+
+    patch_json = client.get("/api/patch?format=json")
+    assert patch_json.status_code in (200, 404)
+    if patch_json.status_code == 200:
+        data = patch_json.json()
+        assert "patch" in data
+        assert "files_count" in data
+
+    # Suppressions list endpoint
+    sups_res = client.get("/api/suppressions")
+    assert sups_res.status_code == 200
+    assert isinstance(sups_res.json(), list)
+
+
 def test_full_audit_cli_produces_all_3_artifacts(tmp_path: Path) -> None:
     repo_root = Path(__file__).resolve().parents[2]
     html_p = tmp_path / "cli_audit.html"

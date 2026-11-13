@@ -169,10 +169,14 @@ class ReviewerStore:
 
     def save_finding(
         self,
-        finding: dict[str, Any],
+        finding: Any,
         run_id: str = "default",
         audit_id: str | None = None,
     ) -> str:
+        if hasattr(finding, "to_dict"):
+            finding = finding.to_dict()
+        elif not isinstance(finding, dict) and hasattr(finding, "__dict__"):
+            finding = vars(finding)
         fid = str(finding.get("id") or uuid.uuid4().hex[:12])
         # Keep ID unique per run if identical rule appears in multiple runs
         row_id = f"{run_id}:{fid}" if ":" not in fid else fid
@@ -302,6 +306,58 @@ class ReviewerStore:
                     count += 1
             session.commit()
         return count
+
+    def revoke_suppression(self, finding_id: str) -> bool:
+        """Revoke an active suppression and re-open the finding."""
+        with self.SessionLocal() as session:
+            row = session.get(FindingModel, finding_id)
+            if row is None:
+                raise KeyError(f"Finding not found: {finding_id}")
+            sups = session.scalars(
+                select(SuppressionModel).where(
+                    SuppressionModel.finding_id == finding_id,
+                    SuppressionModel.active.is_(True),
+                )
+            ).all()
+            for s in sups:
+                s.active = False
+            row.status = "OPEN"
+            session.commit()
+            return True
+
+    def get_suppressions(self, active_only: bool = True, now: datetime | None = None) -> list[dict[str, Any]]:
+        """List suppressions with linked finding metadata and expiration details."""
+        self.expire_suppressions(now=now)
+        ref = _utc(now)
+        with self.SessionLocal() as session:
+            stmt = select(SuppressionModel).order_by(SuppressionModel.created_at.desc())
+            if active_only:
+                stmt = stmt.where(SuppressionModel.active.is_(True))
+            rows = session.scalars(stmt).all()
+            out: list[dict[str, Any]] = []
+            for s in rows:
+                f_row = session.get(FindingModel, s.finding_id)
+                exp = _utc(s.expires_at)
+                delta = exp - ref
+                days_left = max(0, delta.days)
+                out.append(
+                    {
+                        "id": s.id,
+                        "finding_id": s.finding_id,
+                        "owner": s.owner,
+                        "reason": s.reason,
+                        "active": s.active,
+                        "created_at": _utc(s.created_at).isoformat(),
+                        "expires_at": exp.isoformat(),
+                        "days_remaining": days_left,
+                        "check_id": f_row.check_id if f_row else "",
+                        "rule": f_row.rule if f_row else "",
+                        "file": f_row.file if f_row else "",
+                        "line": f_row.line if f_row else 1,
+                        "severity": f_row.severity if f_row else "Medium",
+                    }
+                )
+            return out
 
     def get_findings(
         self,

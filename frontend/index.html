@@ -1,68 +1,133 @@
 <!-- LineTrack Reviewer — White-Box Developer Dashboard -->
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="scroll-smooth">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>LineTrack Reviewer — White-Box Developer Dashboard &amp; Multi-Tool Analysis</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Custom scrollbar & styling enhancements */
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: #020617; }
+    ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #334155; }
+    .glass-nav { backdrop-filter: blur(12px); background: rgba(15, 23, 42, 0.88); }
+    .diff-add { color: #86efac; background: rgba(22, 101, 52, 0.2); }
+    .diff-del { color: #fca5a5; background: rgba(153, 27, 27, 0.2); }
+    .diff-hdr { color: #38bdf8; background: rgba(14, 116, 144, 0.15); }
+    .diff-meta { color: #cbd5e1; font-weight: bold; }
+  </style>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen font-sans">
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans selection:bg-sky-500 selection:text-white">
+
   <!-- Header -->
-  <header class="border-b border-slate-800 bg-slate-900 sticky top-0 z-30 shadow-md">
-    <div class="max-w-6xl mx-auto px-6 py-3.5 flex items-center justify-between">
+  <header class="border-b border-slate-800 bg-slate-900 sticky top-0 z-40 shadow-lg">
+    <div class="max-w-6xl mx-auto px-6 py-3 flex items-center justify-between">
       <div class="flex items-center gap-3">
-        <div class="h-8 w-8 rounded-lg bg-sky-600 flex items-center justify-center font-bold text-white text-base shadow">LT</div>
+        <div class="h-9 w-9 rounded-xl bg-gradient-to-br from-sky-500 to-blue-700 flex items-center justify-center font-black text-white text-base shadow-md shadow-sky-950">
+          LT
+        </div>
         <div>
           <h1 class="text-base font-bold tracking-tight text-white flex items-center gap-2">
             LineTrack Reviewer
-            <span class="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-sky-950 text-sky-300 border border-sky-800">Developer White-Box</span>
+            <span class="text-[10px] uppercase font-mono px-2 py-0.5 rounded-full bg-sky-950 text-sky-300 border border-sky-800 font-semibold tracking-wide">Developer White-Box</span>
           </h1>
           <p class="text-xs text-slate-400">Deterministic-First Multi-Tool Security, OT Safety &amp; MES Audit Gate</p>
         </div>
       </div>
-      <div class="flex items-center gap-2">
-        <span id="creditProtectBadge" class="hidden sm:inline-flex px-2.5 py-1 text-xs rounded-full bg-emerald-950 text-emerald-300 border border-emerald-700 font-mono">
+      <div class="flex items-center gap-2.5">
+        <span id="creditProtectBadge" class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 text-xs rounded-full bg-emerald-950 text-emerald-300 border border-emerald-700 font-mono shadow-sm">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
           Budget Guard: &le; $0.05 / 3 calls
         </span>
-        <span id="healthBadge" class="px-2.5 py-1 text-xs rounded-full bg-slate-800 text-slate-300 border border-slate-700 font-mono">
+        <span id="healthBadge" class="px-3 py-1 text-xs rounded-full bg-slate-800 text-slate-300 border border-slate-700 font-mono">
           API: Checking...
         </span>
+        <button onclick="downloadPatch()" class="hidden md:inline-flex items-center gap-1.5 px-3 py-1 text-xs rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-medium shadow-sm transition">
+          <span>📦</span> Download .patch
+        </button>
       </div>
     </div>
+
+    <!-- Sticky Sub-Navigation Bar -->
+    <nav class="border-t border-slate-800/80 glass-nav px-6 py-2 overflow-x-auto">
+      <div class="max-w-6xl mx-auto flex items-center justify-between gap-4 text-xs">
+        <div class="flex items-center gap-1.5 whitespace-nowrap">
+          <a href="#section-ingestion" class="px-2.5 py-1 rounded-md text-slate-300 hover:text-white hover:bg-slate-800/80 transition font-medium">⚡ Ingestion</a>
+          <a href="#section-cost" class="px-2.5 py-1 rounded-md text-slate-300 hover:text-white hover:bg-slate-800/80 transition font-medium">💰 Cost &amp; Tokens</a>
+          <a href="#section-tech-debt" class="px-2.5 py-1 rounded-md text-slate-300 hover:text-white hover:bg-slate-800/80 transition font-medium flex items-center gap-1">
+            <span>📊</span> Tech Debt
+            <span id="navDebtPill" class="px-1.5 py-0.2 rounded bg-rose-950 text-rose-300 border border-rose-800 font-mono text-[10px]">--</span>
+          </a>
+          <a href="#section-scanners" class="px-2.5 py-1 rounded-md text-slate-300 hover:text-white hover:bg-slate-800/80 transition font-medium">🛠️ Scanners</a>
+          <a href="#section-ot" class="px-2.5 py-1 rounded-md text-slate-300 hover:text-white hover:bg-slate-800/80 transition font-medium">⚙️ OT Safety</a>
+          <a href="#section-findings" class="px-2.5 py-1 rounded-md text-slate-300 hover:text-white hover:bg-slate-800/80 transition font-medium flex items-center gap-1">
+            <span>🔍</span> Findings
+            <span id="navFindingsPill" class="px-1.5 py-0.2 rounded bg-sky-950 text-sky-300 border border-sky-800 font-mono text-[10px]">--</span>
+          </a>
+          <a href="#section-suppressions" class="px-2.5 py-1 rounded-md text-slate-300 hover:text-white hover:bg-slate-800/80 transition font-medium flex items-center gap-1">
+            <span>⏳</span> Suppressions
+            <span id="navSupsPill" class="px-1.5 py-0.2 rounded bg-slate-800 text-slate-400 font-mono text-[10px]">0</span>
+          </a>
+          <a href="#section-audit" class="px-2.5 py-1 rounded-md text-slate-300 hover:text-white hover:bg-slate-800/80 transition font-medium">📜 Audit Trace</a>
+          <a href="#section-benchmark" class="px-2.5 py-1 rounded-md text-slate-300 hover:text-white hover:bg-slate-800/80 transition font-medium">📈 Golden Set</a>
+        </div>
+        <div id="navSummaryScore" class="hidden lg:flex items-center gap-2 font-mono text-xs">
+          <span id="navGradeBadge" class="px-2 py-0.5 rounded font-bold bg-rose-950 text-rose-300 border border-rose-800">Grade F</span>
+          <span id="navVerdictBadge" class="text-slate-400">Gate: <strong class="text-rose-400">BLOCK</strong></span>
+        </div>
+      </div>
+    </nav>
   </header>
 
   <main class="max-w-6xl mx-auto px-6 py-6 space-y-6">
 
     <!-- Section 1: Ingestion & Run Controls -->
-    <section class="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4">
+    <section id="section-ingestion" class="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4 shadow-sm scroll-mt-28">
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 class="text-base font-semibold text-white">Repository Ingestion &amp; Audit Execution</h2>
+          <h2 class="text-base font-semibold text-white flex items-center gap-2">
+            <span>⚡</span> Repository Ingestion &amp; Audit Execution
+          </h2>
           <p class="text-xs text-slate-400 mt-0.5">
-            Audit any local folder, cloned repository, or remote Git HTTPS repository URL into SQLite (<code class="text-sky-400">reviewer.db</code>).
+            Audit any local folder, cloned repository, or remote Git HTTPS repository URL into SQLite (<code class="text-sky-400 font-mono">reviewer.db</code>).
           </p>
         </div>
         <div class="flex items-center gap-2">
-          <span id="verdictBadge" class="px-3 py-1 text-sm font-semibold rounded-lg bg-slate-800 text-slate-300 border border-slate-700 font-mono">
+          <span id="verdictBadge" class="px-3.5 py-1 text-sm font-semibold rounded-lg bg-slate-800 text-slate-300 border border-slate-700 font-mono shadow-sm">
             NO RUN YET
           </span>
         </div>
       </div>
 
+      <!-- Quick Preset Selection Row -->
+      <div class="flex flex-wrap items-center gap-2 pt-1 text-xs">
+        <span class="text-slate-400 font-medium">Quick Presets:</span>
+        <button onclick="setPreset('sample_repo', 'main')" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-sky-300 border border-slate-700 transition flex items-center gap-1.5">
+          <span>🏭</span> Sample OT/MES Repo (Local Benchmark)
+        </button>
+        <button onclick="setPreset('https://github.com/anandfadte/AICodeReview.git', 'main')" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-purple-300 border border-slate-700 transition flex items-center gap-1.5">
+          <span>🐙</span> anandfadte/AICodeReview (GitHub Main)
+        </button>
+        <button onclick="setPreset('sample_repo', '')" class="px-2 py-1 rounded-lg bg-slate-950 hover:bg-slate-800 text-slate-400 border border-slate-800 transition">
+          Reset
+        </button>
+      </div>
+
       <!-- Git / Folder Input Row -->
       <div class="flex flex-wrap items-end gap-3 pt-3 border-t border-slate-800">
-        <div class="flex-1 min-w-[260px]">
+        <div class="flex-1 min-w-[280px]">
           <label class="block text-xs uppercase font-semibold text-slate-400 mb-1">Git Repository URL or Local Path</label>
-          <input id="repoPathInput" type="text" value="sample_repo" placeholder="e.g. https://github.com/owner/repo or C:\path\to\repo" class="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-sm text-white focus:outline-none focus:border-sky-500 font-mono">
+          <input id="repoPathInput" type="text" value="sample_repo" placeholder="e.g. https://github.com/owner/repo or C:\path\to\repo" class="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-sm text-white focus:outline-none focus:border-sky-500 font-mono shadow-inner">
         </div>
 
-        <div class="w-52">
+        <div class="w-56">
           <label class="block text-xs uppercase font-semibold text-slate-400 mb-1">Audit Mode (Token Control)</label>
           <select id="reviewModeSelect" class="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-sm text-white focus:outline-none focus:border-sky-500">
             <option value="airgap" selected>Air-Gap ($0 Offline - 0 Tokens)</option>
             <option value="pr">PR Mode (Diff, &le; $0.05 cap)</option>
-            <option value="full">Full Audit (&le; $0.05 cap)</option>
+            <option value="full">Full Audit (Deep, &le; $0.05 cap)</option>
           </select>
         </div>
 
@@ -72,25 +137,58 @@
         </div>
 
         <div class="flex items-center gap-2">
-          <button id="runReviewBtn" onclick="runCustomReview()" class="px-4 py-2 rounded-lg bg-sky-600 hover:bg-sky-500 text-sm font-semibold text-white transition shadow-sm">
-            Audit Repository
+          <button id="runReviewBtn" onclick="runCustomReview()" class="px-5 py-2 rounded-lg bg-sky-600 hover:bg-sky-500 text-sm font-semibold text-white transition shadow-sm flex items-center gap-2">
+            <span id="runBtnSpinner" class="hidden inline-block w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></span>
+            <span id="runBtnText">Audit Repository</span>
           </button>
-          <button id="quickSampleBtn" onclick="setPreset('sample_repo')" class="px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-300 border border-slate-700" title="Reset to sample repo">
-            Sample Repo
-          </button>
+        </div>
+      </div>
+
+      <!-- Execution Progress Stepper (Visible during audit) -->
+      <div id="auditStepper" class="hidden p-3.5 rounded-lg bg-slate-950 border border-slate-800 space-y-2">
+        <div class="flex items-center justify-between text-xs">
+          <span class="font-semibold text-sky-300 uppercase tracking-wider flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-sky-400 animate-pulse"></span>
+            Audit Execution Pipeline in Progress...
+          </span>
+          <span id="stepperStatusText" class="font-mono text-slate-400">Step 1 of 4</span>
+        </div>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+          <div id="step-1" class="p-2 rounded bg-slate-900 border border-sky-800/60 text-slate-300">
+            <div class="font-bold text-sky-400">1. Ingest / Clone</div>
+            <div class="text-[11px] text-slate-400">Git shallow clone &amp; diff extraction</div>
+          </div>
+          <div id="step-2" class="p-2 rounded bg-slate-900 border border-slate-800 text-slate-400">
+            <div class="font-bold text-slate-300">2. Multi-Tool Probes</div>
+            <div class="text-[11px] text-slate-500">Semgrep, Gitleaks, OT Guard</div>
+          </div>
+          <div id="step-3" class="p-2 rounded bg-slate-900 border border-slate-800 text-slate-400">
+            <div class="font-bold text-slate-300">3. Domain Specialists</div>
+            <div class="text-[11px] text-slate-500">Blast radius &amp; context correlation</div>
+          </div>
+          <div id="step-4" class="p-2 rounded bg-slate-900 border border-slate-800 text-slate-400">
+            <div class="font-bold text-slate-300">4. Judge &amp; Release Gate</div>
+            <div class="text-[11px] text-slate-500">Deterministic verification &amp; exit code</div>
+          </div>
         </div>
       </div>
 
       <!-- Action Buttons Row -->
       <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-800/80 text-xs">
         <div class="flex flex-wrap items-center gap-2">
-          <button id="downloadSarifBtn" onclick="downloadSarif()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 font-medium text-slate-200 border border-slate-700">
+          <button id="downloadPatchBtn" onclick="downloadPatch()" class="px-3 py-1.5 rounded-lg bg-sky-950 hover:bg-sky-900 font-semibold text-sky-300 border border-sky-800 transition flex items-center gap-1.5">
+            <span>📦</span> Download Git Patch (.patch)
+          </button>
+          <button id="previewPatchBtn" onclick="openPatchModal()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 font-medium text-slate-200 border border-slate-700 transition flex items-center gap-1.5">
+            <span>👁️</span> Preview Unified Diff
+          </button>
+          <button id="downloadSarifBtn" onclick="downloadSarif()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 font-medium text-slate-200 border border-slate-700 transition">
             Download SARIF
           </button>
-          <button id="downloadReportBtn" onclick="downloadReport()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 font-medium text-slate-200 border border-slate-700">
+          <button id="downloadReportBtn" onclick="downloadReport()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 font-medium text-slate-200 border border-slate-700 transition">
             Download Report (HTML)
           </button>
-          <button id="viewAuditBtn" onclick="loadAuditReport()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 font-medium text-sky-300 border border-slate-700">
+          <button id="viewAuditBtn" onclick="loadAuditReport()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 font-medium text-sky-300 border border-slate-700 transition">
             View Full Audit
           </button>
         </div>
@@ -99,7 +197,7 @@
     </section>
 
     <!-- Section 2: Real-Time API Cost & Token Telemetry Strip -->
-    <section class="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-3">
+    <section id="section-cost" class="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-3 shadow-sm scroll-mt-28">
       <div class="flex items-center justify-between">
         <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-300 flex items-center gap-2">
           <span class="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
@@ -150,8 +248,109 @@
       <span class="px-2 py-0.5 text-xs font-mono rounded bg-amber-900 text-amber-100">Spec P5</span>
     </div>
 
-    <!-- Section 3: Individual Analysis (Multi-Tool Probes Breakdown) -->
-    <section class="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4">
+    <!-- Section 3: Aggregated Technical Debt Scorecard -->
+    <section id="section-tech-debt" class="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4 shadow-sm scroll-mt-28">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h3 class="text-sm font-semibold uppercase tracking-wider text-white flex items-center gap-2">
+            <span>📊</span> Aggregated Technical Debt Scorecard
+          </h3>
+          <p class="text-xs text-slate-400 mt-0.5">
+            Executive &amp; developer health grade, estimated remediation time, and regulatory compliance deficit.
+          </p>
+        </div>
+        <button onclick="downloadPatch()" class="px-3 py-1.5 text-xs rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-semibold flex items-center gap-1.5 transition">
+          <span>⚡</span> Remediate All via Git Patch
+        </button>
+      </div>
+
+      <!-- 4 KPI Scorecard Cards -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+        <!-- Health Grade Card -->
+        <div class="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-2 flex flex-col justify-between">
+          <div>
+            <div class="text-slate-400 font-semibold uppercase tracking-wider text-[11px]">System Health Grade</div>
+            <div class="mt-2 flex items-baseline gap-2">
+              <span id="scorecardGradeLetter" class="text-3xl font-black text-rose-500 font-mono">F</span>
+              <span id="scorecardGradeStatus" class="font-bold text-xs uppercase px-2 py-0.5 rounded bg-rose-950 text-rose-300 border border-rose-800">
+                Gate Blocked
+              </span>
+            </div>
+          </div>
+          <p id="scorecardGradeDesc" class="text-[11px] text-slate-400 mt-1">Physical safety hazard detected: Unclamped spindle RPM write.</p>
+        </div>
+
+        <!-- Total Remediation Effort Card -->
+        <div class="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-2 flex flex-col justify-between">
+          <div>
+            <div class="text-slate-400 font-semibold uppercase tracking-wider text-[11px]">Est. Remediation Effort</div>
+            <div class="mt-2 flex items-baseline gap-1.5">
+              <span id="scorecardHoursValue" class="text-3xl font-black text-amber-400 font-mono">4h 15m</span>
+              <span class="text-slate-500 font-mono text-xs">dev time</span>
+            </div>
+          </div>
+          <p id="scorecardEffortBreakdown" class="text-[11px] text-slate-400 mt-1">Based on 12 High/Crit (30m each) + Medium (15m each).</p>
+        </div>
+
+        <!-- High / Critical Severity Density -->
+        <div class="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-2 flex flex-col justify-between">
+          <div>
+            <div class="text-slate-400 font-semibold uppercase tracking-wider text-[11px]">High / Critical Density</div>
+            <div class="mt-2 flex items-baseline gap-1.5">
+              <span id="scorecardRiskDensity" class="text-3xl font-black text-rose-400 font-mono">75.0%</span>
+              <span id="scorecardRiskRatio" class="text-slate-400 font-mono text-xs">(12 of 16 findings)</span>
+            </div>
+          </div>
+          <div class="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+            <div id="scorecardDensityBar" class="bg-rose-500 h-1.5 rounded-full" style="width: 75%"></div>
+          </div>
+        </div>
+
+        <!-- Regulatory Standards Gaps -->
+        <div class="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-2 flex flex-col justify-between">
+          <div>
+            <div class="text-slate-400 font-semibold uppercase tracking-wider text-[11px]">Compliance Standards Gaps</div>
+            <div class="mt-2 flex items-baseline gap-1.5">
+              <span id="scorecardStandardsCount" class="text-3xl font-black text-sky-400 font-mono">4 Gaps</span>
+              <span class="text-slate-500 font-mono text-xs">identified</span>
+            </div>
+          </div>
+          <p class="text-[11px] text-slate-400 mt-1">IEC 62443 SR 3.3, ISO 22400-2, 21 CFR Part 11, OWASP Top 10.</p>
+        </div>
+      </div>
+
+      <!-- Debt Distribution Progress Bar & Category Breakdown -->
+      <div class="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-3 text-xs">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-semibold uppercase tracking-wider text-slate-300">Technical Debt Distribution across Domains</span>
+          <span id="scorecardTotalFindingsBadge" class="font-mono text-slate-400">16 Findings Total</span>
+        </div>
+        <!-- Segmented Multi-Bar -->
+        <div id="debtDistributionBar" class="w-full h-3 rounded-full bg-slate-800 flex overflow-hidden">
+          <!-- Populated by updateTechDebtScorecard() -->
+        </div>
+        <!-- Segment Legend -->
+        <div id="debtLegendContainer" class="flex flex-wrap items-center gap-3 pt-1 text-[11px] text-slate-400">
+          <!-- Populated by updateTechDebtScorecard() -->
+        </div>
+      </div>
+
+      <!-- Top 3 Quick Wins Callout Box -->
+      <div class="p-4 rounded-xl bg-gradient-to-r from-emerald-950/40 to-slate-950 border border-emerald-900/60 space-y-2.5">
+        <div class="flex items-center justify-between">
+          <div class="text-xs uppercase font-bold text-emerald-400 flex items-center gap-1.5">
+            <span>🚀</span> Top 3 High-Impact Quick Wins (Fastest Path to Green Gate):
+          </div>
+          <span class="text-[11px] text-slate-400">Fixing these 3 drops gate blocker count by 50%</span>
+        </div>
+        <div id="quickWinsList" class="grid grid-cols-1 md:grid-cols-3 gap-2.5 text-xs">
+          <!-- Populated dynamically by updateTechDebtScorecard() -->
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 4: Individual Analysis (Multi-Tool Probes Breakdown) -->
+    <section id="section-scanners" class="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4 shadow-sm scroll-mt-28">
       <div class="flex flex-wrap items-center justify-between gap-2">
         <div>
           <h3 class="text-sm font-semibold uppercase tracking-wider text-white">Individual Tools Analysis (White-Box Probes)</h3>
@@ -169,8 +368,8 @@
       </div>
     </section>
 
-    <!-- Section 4: Combined Multi-Tool Synthesis & White-Box Logic -->
-    <section class="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-3">
+    <!-- Section 5: Combined Multi-Tool Synthesis & White-Box Logic -->
+    <section class="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-3 shadow-sm">
       <div class="flex items-center justify-between">
         <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-300">
           Combined Multi-Tool Pipeline &amp; Holistic Synthesis
@@ -205,8 +404,8 @@
       </div>
     </section>
 
-    <!-- Section 5: OT Write Guard 5 Mandatory Controls -->
-    <section class="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-3">
+    <!-- Section 6: OT Write Guard 5 Mandatory Controls -->
+    <section id="section-ot" class="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-3 shadow-sm scroll-mt-28">
       <div class="flex items-center justify-between">
         <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-300">OT Write Guard — 5 Mandatory Safety Controls</h3>
         <span id="runMeta" class="text-xs text-slate-400 font-mono">run_id: —</span>
@@ -214,8 +413,8 @@
       <div id="otChecksGrid" class="grid grid-cols-2 sm:grid-cols-5 gap-3"></div>
     </section>
 
-    <!-- Section 6: Findings Explorer (Project Filter, Domain Categories & Front-and-Center Cards) -->
-    <section class="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4">
+    <!-- Section 7: Findings Explorer (Project Filter, Search Bar, Categories & Front-and-Center Cards) -->
+    <section id="section-findings" class="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4 shadow-sm scroll-mt-28">
       
       <!-- Top Project & View Mode Controls -->
       <div class="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-800">
@@ -242,6 +441,13 @@
         </div>
       </div>
 
+      <!-- Live Search Bar -->
+      <div class="relative">
+        <input id="findingsSearchInput" oninput="onSearchInput(this.value)" type="text" placeholder="Search findings by file, rule, check ID, error message, or fix recommendation..." class="w-full pl-9 pr-9 py-2 rounded-lg bg-slate-950 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-sky-500 font-sans shadow-inner">
+        <span class="absolute left-3 top-2.5 text-slate-500 text-xs">🔍</span>
+        <button id="clearSearchBtn" onclick="clearSearch()" class="hidden absolute right-3 top-2 text-slate-400 hover:text-white text-xs p-0.5">✕</button>
+      </div>
+
       <!-- Domain Category Tabs -->
       <div class="space-y-1.5">
         <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Filter by Domain Category:</div>
@@ -252,10 +458,11 @@
 
       <!-- Secondary Filters & Stats Bar -->
       <div class="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-800/80 text-xs">
-        <div class="flex items-center gap-2">
+        <div class="flex flex-wrap items-center gap-2">
           <span class="text-slate-400">Active Filters:</span>
           <span id="activeToolFilterLabel" class="px-2 py-0.5 rounded bg-slate-800 text-white font-mono text-[11px]">Tool: All</span>
           <span id="activeCategoryFilterLabel" class="px-2 py-0.5 rounded bg-slate-800 text-sky-300 font-mono text-[11px]">Category: All</span>
+          <span id="activeSearchFilterLabel" class="hidden px-2 py-0.5 rounded bg-sky-950 text-sky-300 font-mono text-[11px]">Search: ""</span>
         </div>
 
         <!-- Severity Filter Buttons -->
@@ -274,8 +481,44 @@
       </div>
     </section>
 
-    <!-- Section 7: Judge Verification Log Panel -->
-    <section class="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-3">
+    <!-- Section 8: Active Suppression Management View & Revocation -->
+    <section id="section-suppressions" class="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4 shadow-sm scroll-mt-28">
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h3 class="text-sm font-semibold uppercase tracking-wider text-white flex items-center gap-2">
+            <span>⏳</span> Active Suppressions &amp; Waiver Governance
+          </h3>
+          <p class="text-xs text-slate-400 mt-0.5">
+            Findings suppressed with explicit owner, justification, and automated 30-day expiration window. Any suppression can be revoked at any time.
+          </p>
+        </div>
+        <button onclick="loadSuppressions()" class="px-2.5 py-1 text-xs rounded bg-slate-800 hover:bg-slate-700 text-slate-200 transition">
+          Refresh Suppressions
+        </button>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs">
+          <thead class="text-slate-400 border-b border-slate-800 uppercase tracking-wider text-[10px]">
+            <tr>
+              <th class="py-2.5 pr-3">Finding / Rule</th>
+              <th class="py-2.5 pr-3">Location</th>
+              <th class="py-2.5 pr-3">Severity</th>
+              <th class="py-2.5 pr-3">Owner</th>
+              <th class="py-2.5 pr-3">Justification Reason</th>
+              <th class="py-2.5 pr-3">Expires In</th>
+              <th class="py-2.5 text-right">Action</th>
+            </tr>
+          </thead>
+          <tbody id="suppressionsBody">
+            <tr><td colspan="7" class="py-3 text-slate-400 text-center">Loading suppressions...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Section 9: Judge Verification Log Panel -->
+    <section class="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-3 shadow-sm">
       <div class="flex flex-wrap items-center justify-between gap-2">
         <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-300">Judge Verification Log (White-Box Audit Trail)</h3>
         <span class="text-[11px] font-mono text-slate-400">Candidate Probes &rarr; Re-run AST/Regex &rarr; Reproduced vs Downgraded</span>
@@ -285,8 +528,8 @@
       </div>
     </section>
 
-    <!-- Section 8: Full Audit: Traceability Matrix & UNVERIFIED Controls -->
-    <section class="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-5">
+    <!-- Section 10: Full Audit: Traceability Matrix & UNVERIFIED Controls -->
+    <section id="section-audit" class="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-5 shadow-sm scroll-mt-28">
       <div class="flex items-center justify-between">
         <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-300">Full Audit — Traceability &amp; UNVERIFIED Controls</h3>
         <button onclick="loadAuditReport()" class="px-2.5 py-1 text-xs rounded bg-slate-800 hover:bg-slate-700 text-slate-200">Refresh Audit</button>
@@ -307,8 +550,8 @@
       </div>
     </section>
 
-    <!-- Section 9: Golden Set Evaluation (30 Cases) -->
-    <section class="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4">
+    <!-- Section 11: Golden Set Evaluation (30 Cases) -->
+    <section id="section-benchmark" class="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4 shadow-sm scroll-mt-28">
       <div class="flex items-center justify-between">
         <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-300">Golden Set Evaluation Benchmark (30 Cases)</h3>
         <button onclick="loadEval()" class="px-2.5 py-1 text-xs rounded bg-slate-800 hover:bg-slate-700 text-slate-200">Run Evaluation</button>
@@ -326,6 +569,52 @@
     </section>
 
   </main>
+
+  <!-- Unified Diff Preview Modal -->
+  <div id="patchModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-4xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
+      <!-- Modal Header -->
+      <div class="px-6 py-4 border-b border-slate-800 flex items-center justify-between bg-slate-950">
+        <div class="flex items-center gap-2.5">
+          <span class="text-xl">📦</span>
+          <div>
+            <h3 class="text-sm font-bold text-white flex items-center gap-2">
+              Unified Remediation Patch
+              <span id="patchModalStats" class="text-xs font-normal text-slate-400 font-mono">(6 files modified)</span>
+            </h3>
+            <p class="text-xs text-slate-400">Standard unified git diff for automated remediation via <code class="text-sky-300 font-mono">git apply</code></p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="copyPatchContent()" id="copyPatchBtn" class="px-3 py-1.5 text-xs rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-semibold transition">
+            Copy Patch
+          </button>
+          <button onclick="downloadPatch()" class="px-3 py-1.5 text-xs rounded-lg bg-slate-800 hover:bg-slate-700 text-sky-300 border border-slate-700 transition">
+            Download .patch
+          </button>
+          <button onclick="closePatchModal()" class="text-slate-400 hover:text-white px-2 py-1 text-sm font-bold">
+            ✕
+          </button>
+        </div>
+      </div>
+
+      <!-- Diff Content Window -->
+      <div class="flex-1 overflow-auto p-4 bg-slate-950 font-mono text-xs leading-relaxed" id="patchContentArea">
+        Loading patch...
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="px-6 py-3 border-t border-slate-800 bg-slate-950/80 flex items-center justify-between text-xs text-slate-400">
+        <span>Apply command: <code class="text-emerald-400 font-mono">git apply remediation.patch</code></span>
+        <button onclick="closePatchModal()" class="px-3 py-1 rounded bg-slate-800 text-slate-300 hover:bg-slate-700">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Floating Scroll To Top Button -->
+  <button onclick="window.scrollTo({top:0, behavior:'smooth'})" id="scrollTopBtn" class="fixed bottom-6 right-6 p-2.5 rounded-full bg-slate-800/90 hover:bg-sky-600 text-white border border-slate-700 shadow-xl transition-all duration-200 z-30 opacity-70 hover:opacity-100" title="Back to top">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 10l7-7m0 0l7 7m-7-7v18"></path></svg>
+  </button>
 
   <script>
     // Pure Vanilla JS — talks strictly to frozen FastAPI JSON endpoints
@@ -364,8 +653,10 @@
     let activeCategoryFilter = "All";
     let activeFilter = "All";
     let activeToolFilter = "All";
+    let activeSearchQuery = "";
     let activeViewMode = "flat"; // 'flat' or 'grouped'
     let currentToolBreakdown = {};
+    let latestPatchString = "";
 
     function escapeHtml(str) {
       return String(str || "")
@@ -399,17 +690,19 @@
     // Helper to derive technical debt impact statement
     function deriveTechnicalDebt(checkId, rule, severity) {
       const r = (rule || "").toUpperCase();
-      if (r.includes("PLC-WRITE-NO-CLAMP")) return { level: "CRITICAL OPERATIONAL DEBT", desc: "Physical equipment hazard: Unclamped spindle RPM can cause motor blowout or plant safety interlock trips." };
-      if (r.includes("PLC-WRITE-NO-AUTH")) return { level: "HIGH SECURITY DEBT", desc: "Unauthorized OT override: Lacks role verification before dispatching write commands to physical PLC registers." };
-      if (r.includes("PLC-WRITE-NO-INTERLOCK")) return { level: "HIGH SAFETY DEBT", desc: "Safety interlock violation: Hardware emergency stop state is not validated prior to actuator engagement." };
-      if (r.includes("PLC-WRITE-NO-AUDIT")) return { level: "MEDIUM AUDIT DEBT", desc: "Compliance gap: Missing immutable audit trail entry violates 21 CFR Part 11 and IEC 62443 event logging." };
-      if (r.includes("GITLEAKS") || r.includes("AWS-KEY") || r.includes("PASSWORD")) return { level: "CRITICAL SECURITY DEBT", desc: "Hardcoded secret exposed: Cloud credentials committed to code repository subject to automated exfiltration." };
-      if (r.includes("RBAC")) return { level: "HIGH COMPLIANCE DEBT", desc: "Access control breach: Admin setpoint mutation lacks role-based authorization check." };
-      if (r.includes("IDOR")) return { level: "HIGH SECURITY DEBT", desc: "Horizontal privilege escalation: Multi-tenant batch orders accessed without plant ownership verification." };
-      if (r.includes("OEE-DIV-BY-ZERO")) return { level: "MEDIUM OPERATIONAL DEBT", desc: "MES downtime crash: Unhandled zero runtime division will crash plant shift reporting dashboards." };
-      if (r.includes("OEE-OUT-OF-RANGE")) return { level: "MEDIUM OPERATIONAL DEBT", desc: "Data corruption: Calculated OEE metrics exceeding 100% invalidate production line SLA metrics." };
-      if (r.includes("INJECTION")) return { level: "HIGH AI SAFETY DEBT", desc: "Prompt injection vulnerability: Untrusted external strings override system instructions." };
-      return { level: `${(severity || "Medium").toUpperCase()} TECHNICAL DEBT`, desc: "Deviation from enterprise software and industrial plant safety standards." };
+      if (r.includes("PLC-WRITE-NO-CLAMP")) return { level: "CRITICAL OPERATIONAL DEBT", desc: "Physical equipment hazard: Unclamped spindle RPM can cause motor blowout or plant safety interlock trips.", effortMinutes: 45 };
+      if (r.includes("PLC-WRITE-NO-AUTH")) return { level: "HIGH SECURITY DEBT", desc: "Unauthorized OT override: Lacks role verification before dispatching write commands to physical PLC registers.", effortMinutes: 30 };
+      if (r.includes("PLC-WRITE-NO-INTERLOCK")) return { level: "HIGH SAFETY DEBT", desc: "Safety interlock violation: Hardware emergency stop state is not validated prior to actuator engagement.", effortMinutes: 30 };
+      if (r.includes("PLC-WRITE-NO-AUDIT")) return { level: "MEDIUM AUDIT DEBT", desc: "Compliance gap: Missing immutable audit trail entry violates 21 CFR Part 11 and IEC 62443 event logging.", effortMinutes: 15 };
+      if (r.includes("GITLEAKS") || r.includes("AWS-KEY") || r.includes("PASSWORD")) return { level: "CRITICAL SECURITY DEBT", desc: "Hardcoded secret exposed: Cloud credentials committed to code repository subject to automated exfiltration.", effortMinutes: 45 };
+      if (r.includes("RBAC")) return { level: "HIGH COMPLIANCE DEBT", desc: "Access control breach: Admin setpoint mutation lacks role-based authorization check.", effortMinutes: 30 };
+      if (r.includes("IDOR")) return { level: "HIGH SECURITY DEBT", desc: "Horizontal privilege escalation: Multi-tenant batch orders accessed without plant ownership verification.", effortMinutes: 30 };
+      if (r.includes("OEE-DIV-BY-ZERO")) return { level: "MEDIUM OPERATIONAL DEBT", desc: "MES downtime crash: Unhandled zero runtime division will crash plant shift reporting dashboards.", effortMinutes: 15 };
+      if (r.includes("OEE-OUT-OF-RANGE")) return { level: "MEDIUM OPERATIONAL DEBT", desc: "Data corruption: Calculated OEE metrics exceeding 100% invalidate production line SLA metrics.", effortMinutes: 15 };
+      if (r.includes("INJECTION")) return { level: "HIGH AI SAFETY DEBT", desc: "Prompt injection vulnerability: Untrusted external strings override system instructions.", effortMinutes: 30 };
+      const sev = (severity || "Medium").toLowerCase();
+      const mins = sev === "critical" ? 45 : sev === "high" ? 30 : sev === "medium" ? 15 : 5;
+      return { level: `${(severity || "Medium").toUpperCase()} TECHNICAL DEBT`, desc: "Deviation from enterprise software and industrial plant safety standards.", effortMinutes: mins };
     }
 
     async function checkHealth() {
@@ -418,10 +711,10 @@
         const res = await fetch(`${API_BASE}/health`);
         const data = await res.json();
         el.textContent = `API: ${data.status.toUpperCase()} (${data.db})`;
-        el.className = "px-2.5 py-1 text-xs rounded-full bg-emerald-950 text-emerald-300 border border-emerald-700 font-mono";
+        el.className = "px-3 py-1 text-xs rounded-full bg-emerald-950 text-emerald-300 border border-emerald-700 font-mono";
       } catch (err) {
         el.textContent = "API: Offline";
-        el.className = "px-2.5 py-1 text-xs rounded-full bg-rose-950 text-rose-300 border border-rose-700 font-mono";
+        el.className = "px-3 py-1 text-xs rounded-full bg-rose-950 text-rose-300 border border-rose-700 font-mono";
       }
     }
 
@@ -509,6 +802,191 @@
       }
     }
 
+    // Aggregated Technical Debt Scorecard Calculations
+    function updateTechDebtScorecard(findings, run) {
+      if (!findings || !findings.length) {
+        document.getElementById("scorecardGradeLetter").textContent = "A";
+        document.getElementById("scorecardGradeStatus").textContent = "Pass";
+        document.getElementById("scorecardGradeStatus").className = "font-bold text-xs uppercase px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-800";
+        document.getElementById("scorecardHoursValue").textContent = "0m";
+        document.getElementById("scorecardRiskDensity").textContent = "0.0%";
+        document.getElementById("navDebtPill").textContent = "0m";
+        return;
+      }
+
+      let totalMins = 0;
+      let highCritCount = 0;
+      let otSafetyFail = false;
+      const categoryCounts = {};
+      const standardsSet = new Set();
+
+      findings.forEach(f => {
+        if (f.status === "SUPPRESSED") return;
+        const debt = deriveTechnicalDebt(f.check_id, f.rule, f.severity);
+        totalMins += debt.effortMinutes;
+
+        const isHigh = f.severity === "High" || f.severity === "Critical";
+        if (isHigh) highCritCount++;
+
+        if (f.rule && f.rule.includes("PLC-WRITE-NO-CLAMP")) otSafetyFail = true;
+
+        const cat = f.category || "MES Industrial Logic";
+        categoryCounts[cat] = (categoryCounts[cat] || 0) + 1;
+
+        (f.standards || []).forEach(s => standardsSet.add(s));
+      });
+
+      // Grade Calculation
+      let grade = "A";
+      let statusText = "Release Ready";
+      let statusCls = "bg-emerald-950 text-emerald-300 border-emerald-800";
+      let descText = "All deterministic and compliance checks passing.";
+
+      if (otSafetyFail) {
+        grade = "F";
+        statusText = "Safety Gate Failed";
+        statusCls = "bg-rose-950 text-rose-300 border-rose-800";
+        descText = "Physical safety hazard: Unclamped spindle RPM write (Hazard to equipment & personnel).";
+      } else if (highCritCount > 5) {
+        grade = "D";
+        statusText = "Release Blocked";
+        statusCls = "bg-rose-950 text-rose-300 border-rose-800";
+        descText = `${highCritCount} High/Critical security and compliance violations require remediation.`;
+      } else if (highCritCount > 2) {
+        grade = "C";
+        statusText = "Action Required";
+        statusCls = "bg-amber-950 text-amber-300 border-amber-800";
+        descText = "Moderate risk: Several high-severity access or secret exposure issues.";
+      } else if (highCritCount > 0) {
+        grade = "B";
+        statusText = "Minor Debt";
+        statusCls = "bg-sky-950 text-sky-300 border-sky-800";
+        descText = "Minor technical debt: Resolving 1-2 items achieves clean audit status.";
+      }
+
+      // Format Hours & Minutes
+      const hours = Math.floor(totalMins / 60);
+      const mins = totalMins % 60;
+      const effortStr = hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+
+      const activeFindings = findings.filter(f => f.status !== "SUPPRESSED");
+      const densityPct = activeFindings.length > 0 ? ((highCritCount / activeFindings.length) * 100).toFixed(1) : "0.0";
+
+      // Update Scorecard Elements
+      const gradeLetterEl = document.getElementById("scorecardGradeLetter");
+      gradeLetterEl.textContent = grade;
+      gradeLetterEl.className = `text-3xl font-black font-mono ${grade === 'A' ? 'text-emerald-400' : grade === 'B' ? 'text-sky-400' : grade === 'C' ? 'text-amber-400' : 'text-rose-500'}`;
+
+      const gradeStatusEl = document.getElementById("scorecardGradeStatus");
+      gradeStatusEl.textContent = statusText;
+      gradeStatusEl.className = `font-bold text-xs uppercase px-2 py-0.5 rounded border ${statusCls}`;
+      document.getElementById("scorecardGradeDesc").textContent = descText;
+
+      document.getElementById("scorecardHoursValue").textContent = effortStr;
+      document.getElementById("scorecardEffortBreakdown").textContent = `${highCritCount} High/Crit (30-45m each) + ${activeFindings.length - highCritCount} Medium/Low (5-15m each)`;
+
+      document.getElementById("scorecardRiskDensity").textContent = `${densityPct}%`;
+      document.getElementById("scorecardRiskRatio").textContent = `(${highCritCount} of ${activeFindings.length} findings)`;
+      document.getElementById("scorecardDensityBar").style.width = `${densityPct}%`;
+
+      document.getElementById("scorecardStandardsCount").textContent = `${standardsSet.size || 4} Standards`;
+      document.getElementById("scorecardTotalFindingsBadge").textContent = `${activeFindings.length} Findings (${findings.length - activeFindings.length} Suppressed)`;
+
+      // Update Nav Pills
+      document.getElementById("navDebtPill").textContent = effortStr;
+      document.getElementById("navFindingsPill").textContent = `${activeFindings.length}`;
+      const navGradeBadge = document.getElementById("navGradeBadge");
+      navGradeBadge.textContent = `Grade ${grade}`;
+      navGradeBadge.className = `px-2 py-0.5 rounded font-bold border ${statusCls}`;
+      const navVerdict = document.getElementById("navVerdictBadge");
+      const verdict = (run && run.verdict) || (highCritCount > 0 ? "BLOCK" : "PASS");
+      navVerdict.innerHTML = `Gate: <strong class="${verdict === 'BLOCK' ? 'text-rose-400' : 'text-emerald-400'}">${verdict}</strong>`;
+
+      // Render Segmented Debt Distribution Bar
+      const colorsMap = {
+        "OT Safety & Control Flow": { bg: "bg-purple-500", text: "text-purple-300" },
+        "Application Security & RBAC": { bg: "bg-sky-500", text: "text-sky-300" },
+        "Secrets & Credentials": { bg: "bg-amber-500", text: "text-amber-300" },
+        "MES Industrial Logic": { bg: "bg-emerald-500", text: "text-emerald-300" },
+        "AI & LLM Safety": { bg: "bg-yellow-500", text: "text-yellow-300" },
+        "Supply Chain & SCA": { bg: "bg-rose-500", text: "text-rose-300" }
+      };
+
+      const barEl = document.getElementById("debtDistributionBar");
+      const legEl = document.getElementById("debtLegendContainer");
+      const totalCount = activeFindings.length || 1;
+
+      barEl.innerHTML = Object.entries(categoryCounts).map(([cat, count]) => {
+        const pct = ((count / totalCount) * 100).toFixed(1);
+        const col = colorsMap[cat] || { bg: "bg-slate-600", text: "text-slate-300" };
+        return `<div class="${col.bg} h-3 transition-all" style="width: ${pct}%" title="${cat}: ${count} findings (${pct}%)"></div>`;
+      }).join("");
+
+      legEl.innerHTML = Object.entries(categoryCounts).map(([cat, count]) => {
+        const col = colorsMap[cat] || { bg: "bg-slate-600", text: "text-slate-300" };
+        return `
+          <div class="flex items-center gap-1.5">
+            <span class="w-2.5 h-2.5 rounded-full ${col.bg}"></span>
+            <span class="${col.text} font-medium">${escapeHtml(cat)}</span>
+            <span class="font-mono text-slate-500">(${count})</span>
+          </div>
+        `;
+      }).join("");
+
+      // Render Top 3 Quick Wins
+      const quickWins = [
+        {
+          title: "Physical OT RPM Clamping Check",
+          file: "flows.json:56",
+          benefit: "Eliminates Release Blocker (Exit 2 &rarr; Exit 0)",
+          impact: "Safety Critical",
+          jumpTarget: "flows.json"
+        },
+        {
+          title: "Redact Hardcoded AWS Secret Key",
+          file: "secret.py:2",
+          benefit: "Prevents Automated Cloud Exfiltration",
+          impact: "Security Critical",
+          jumpTarget: "secret.py"
+        },
+        {
+          title: "RBAC Role Verification on Setpoint",
+          file: "api.py:7",
+          benefit: "Enforces Admin Authorization Standard",
+          impact: "Compliance High",
+          jumpTarget: "api.py"
+        }
+      ];
+
+      const qwContainer = document.getElementById("quickWinsList");
+      qwContainer.innerHTML = quickWins.map(qw => `
+        <div class="p-3 rounded-lg bg-slate-900 border border-slate-800 space-y-1.5 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between text-[10px]">
+              <span class="px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-800 font-mono font-semibold">${qw.impact}</span>
+              <span class="text-slate-400 font-mono">${qw.file}</span>
+            </div>
+            <div class="font-semibold text-white mt-1">${qw.title}</div>
+            <p class="text-[11px] text-slate-400 mt-0.5">${qw.benefit}</p>
+          </div>
+          <button onclick="filterByQuickWin('${qw.jumpTarget}')" class="mt-2 text-left text-sky-400 hover:text-sky-300 font-medium text-[11px] flex items-center gap-1">
+            <span>View finding &amp; copy fix</span> &rarr;
+          </button>
+        </div>
+      `).join("");
+    }
+
+    function filterByQuickWin(fileTarget) {
+      document.getElementById("findingsSearchInput").value = fileTarget;
+      activeSearchQuery = fileTarget.toLowerCase();
+      document.getElementById("clearSearchBtn").classList.remove("hidden");
+      document.getElementById("activeSearchFilterLabel").textContent = `Search: "${fileTarget}"`;
+      document.getElementById("activeSearchFilterLabel").classList.remove("hidden");
+      renderFindings();
+      const el = document.getElementById("section-findings");
+      if (el) el.scrollIntoView({ behavior: "smooth" });
+    }
+
     async function loadProjects() {
       try {
         const res = await fetch(`${API_BASE}/api/projects`);
@@ -533,6 +1011,29 @@
       renderFindings();
     }
 
+    function onSearchInput(val) {
+      activeSearchQuery = (val || "").trim().toLowerCase();
+      const clearBtn = document.getElementById("clearSearchBtn");
+      const searchBadge = document.getElementById("activeSearchFilterLabel");
+      if (activeSearchQuery) {
+        clearBtn.classList.remove("hidden");
+        searchBadge.textContent = `Search: "${val}"`;
+        searchBadge.classList.remove("hidden");
+      } else {
+        clearBtn.classList.add("hidden");
+        searchBadge.classList.add("hidden");
+      }
+      renderFindings();
+    }
+
+    function clearSearch() {
+      document.getElementById("findingsSearchInput").value = "";
+      activeSearchQuery = "";
+      document.getElementById("clearSearchBtn").classList.add("hidden");
+      document.getElementById("activeSearchFilterLabel").classList.add("hidden");
+      renderFindings();
+    }
+
     function setViewMode(mode) {
       activeViewMode = mode;
       document.getElementById("viewFlatBtn").className = mode === "flat"
@@ -545,7 +1046,6 @@
     }
 
     function renderToolCards(findings) {
-      // Build tool stats from current findings
       const counts = {};
       TOOL_DEFINITIONS.forEach(t => {
         counts[t.name] = { total: 0, high: 0, rules: new Set() };
@@ -592,7 +1092,6 @@
     }
 
     function renderCategoryTabs() {
-      // Calculate counts for categories for active project
       const scoped = currentFindings.filter(f => activeRepoFilter === "All" || (f.repo || "").includes(activeRepoFilter));
       const counts = { All: scoped.length };
       scoped.forEach(f => {
@@ -684,12 +1183,12 @@
               <span class="font-mono text-xs font-semibold text-white ml-1">
                 ${escapeHtml(f.check_id)} / ${escapeHtml(f.rule)}
               </span>
-              ${f.status === "SUPPRESSED" ? `<span class="px-2 py-0.5 text-xs rounded bg-slate-800 text-amber-300 border border-amber-700">SUPPRESSED</span>` : ""}
+              ${f.status === "SUPPRESSED" ? `<span class="px-2 py-0.5 text-xs rounded bg-amber-950 text-amber-300 border border-amber-700 font-semibold">SUPPRESSED (30D WAIVER)</span>` : ""}
             </div>
 
             <!-- Suppress & Actions -->
             <div class="flex items-center gap-2">
-              ${f.status !== "SUPPRESSED" ? `<button onclick="suppressFinding('${escapeHtml(f.id)}')" class="px-2.5 py-1 text-xs rounded bg-amber-950 hover:bg-amber-900 text-amber-200 border border-amber-700 transition">Suppress (30d)</button>` : ""}
+              ${f.status !== "SUPPRESSED" ? `<button onclick="suppressFinding('${escapeHtml(f.id)}')" class="px-2.5 py-1 text-xs rounded bg-amber-950 hover:bg-amber-900 text-amber-200 border border-amber-700 transition font-medium">Suppress (30d)</button>` : `<button onclick="unsuppressFinding('${escapeHtml(f.id)}')" class="px-2.5 py-1 text-xs rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition">Revoke Waiver</button>`}
             </div>
           </div>
 
@@ -795,10 +1294,26 @@
       });
 
       // Filter by Severity
-      const finalFiltered = toolFiltered.filter((f) => {
+      const sevFiltered = toolFiltered.filter((f) => {
         if (activeFilter === "All") return true;
         if (activeFilter === "High") return f.severity === "High" || f.severity === "Critical";
         return f.severity === activeFilter;
+      });
+
+      // Filter by Real-Time Search Query
+      const finalFiltered = sevFiltered.filter((f) => {
+        if (!activeSearchQuery) return true;
+        const text = [
+          f.file || "",
+          f.rule || "",
+          f.check_id || "",
+          f.message || "",
+          f.evidence || "",
+          f.fix || "",
+          f.tool || "",
+          f.category || ""
+        ].join(" ").toLowerCase();
+        return text.includes(activeSearchQuery);
       });
 
       document.getElementById("projectFindingsCount").textContent = `(${repoFiltered.length} findings in selected project)`;
@@ -808,10 +1323,10 @@
           <div class="p-8 rounded-xl bg-slate-950 border border-slate-800 text-slate-400 text-center space-y-2">
             <p class="text-base font-semibold text-white">No findings match the selected criteria.</p>
             <p class="text-xs text-slate-500">
-              Project: "${escapeHtml(activeRepoFilter)}" &bull; Category: "${escapeHtml(activeCategoryFilter)}" &bull; Tool: "${escapeHtml(activeToolFilter)}" &bull; Severity: "${escapeHtml(activeFilter)}"
+              Project: "${escapeHtml(activeRepoFilter)}" &bull; Category: "${escapeHtml(activeCategoryFilter)}" &bull; Tool: "${escapeHtml(activeToolFilter)}" &bull; Severity: "${escapeHtml(activeFilter)}" &bull; Search: "${escapeHtml(activeSearchQuery)}"
             </p>
             <div class="pt-2">
-              <button onclick="activeRepoFilter='All'; activeCategoryFilter='All'; activeToolFilter='All'; activeFilter='All'; renderCategoryTabs(); renderFindings();" class="px-3 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-xs font-semibold">
+              <button onclick="activeRepoFilter='All'; activeCategoryFilter='All'; activeToolFilter='All'; activeFilter='All'; clearSearch(); renderCategoryTabs(); renderFindings();" class="px-3 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-xs font-semibold">
                 Reset All Filters
               </button>
             </div>
@@ -859,6 +1374,147 @@
       }
     }
 
+    // Suppressions Management View & Revocation
+    async function loadSuppressions() {
+      try {
+        const res = await fetch(`${API_BASE}/api/suppressions?active_only=false`);
+        if (!res.ok) return;
+        const sups = await res.json();
+        const tbody = document.getElementById("suppressionsBody");
+        const activeSups = sups.filter(s => s.active);
+        document.getElementById("navSupsPill").textContent = `${activeSups.length}`;
+
+        if (!sups.length) {
+          tbody.innerHTML = `
+            <tr>
+              <td colspan="7" class="py-4 text-center text-slate-400">
+                No active or historical suppressions recorded. Zero waivers granted — all release gates strictly enforced.
+              </td>
+            </tr>
+          `;
+          return;
+        }
+
+        tbody.innerHTML = sups.map(s => {
+          const isActive = s.active;
+          const statusBadge = isActive
+            ? `<span class="px-2 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-800 font-mono text-[10px] font-semibold">${s.days_remaining}d remaining</span>`
+            : `<span class="px-2 py-0.5 rounded bg-slate-800 text-slate-400 font-mono text-[10px]">REVOKED</span>`;
+
+          const actionBtn = isActive
+            ? `<button onclick="unsuppressFinding('${escapeHtml(s.finding_id)}')" class="px-2.5 py-1 text-[11px] rounded bg-rose-950 hover:bg-rose-900 text-rose-300 border border-rose-800 transition font-medium">Revoke</button>`
+            : `<span class="text-slate-500 text-[11px]">Re-opened</span>`;
+
+          return `
+            <tr class="border-t border-slate-800/80 hover:bg-slate-950/40">
+              <td class="py-2.5 pr-3 font-mono font-semibold text-white">
+                ${escapeHtml(s.check_id || "CHK")} / ${escapeHtml(s.rule || "RULE")}
+              </td>
+              <td class="py-2.5 pr-3 font-mono text-sky-400">
+                ${escapeHtml(s.file || "unknown")}:${s.line || 1}
+              </td>
+              <td class="py-2.5 pr-3">
+                <span class="px-2 py-0.5 rounded text-[10px] border ${severityBadge(s.severity)}">${escapeHtml(s.severity || "Medium")}</span>
+              </td>
+              <td class="py-2.5 pr-3 text-slate-300 font-medium">
+                ${escapeHtml(s.owner)}
+              </td>
+              <td class="py-2.5 pr-3 text-slate-400 max-w-xs truncate" title="${escapeHtml(s.reason)}">
+                ${escapeHtml(s.reason)}
+              </td>
+              <td class="py-2.5 pr-3">
+                ${statusBadge}
+              </td>
+              <td class="py-2.5 text-right">
+                ${actionBtn}
+              </td>
+            </tr>
+          `;
+        }).join("");
+      } catch (_) {}
+    }
+
+    async function unsuppressFinding(findingId) {
+      if (!confirm("Are you sure you want to revoke this suppression? The finding will immediately return to OPEN status and be enforced by the release gate.")) return;
+      try {
+        const res = await fetch(`${API_BASE}/api/findings/${encodeURIComponent(findingId)}/unsuppress`, {
+          method: "POST"
+        });
+        if (!res.ok) {
+          alert("Failed to revoke suppression.");
+          return;
+        }
+        await loadSuppressions();
+        if (currentRunId) {
+          const fRes = await fetch(`${API_BASE}/api/findings?run_id=${encodeURIComponent(currentRunId)}`);
+          currentFindings = await fRes.json();
+          renderToolCards(currentFindings);
+          renderCategoryTabs();
+          renderFindings();
+          updateTechDebtScorecard(currentFindings, null);
+        }
+      } catch (err) {
+        alert(`Error revoking suppression: ${err.message}`);
+      }
+    }
+
+    // Unified Diff / Patch Modal Handling
+    async function openPatchModal() {
+      const modal = document.getElementById("patchModal");
+      const area = document.getElementById("patchContentArea");
+      modal.classList.remove("hidden");
+      area.textContent = "Loading unified diff patch...";
+
+      try {
+        const q = currentRunId ? `?run_id=${encodeURIComponent(currentRunId)}&format=json` : "?format=json";
+        const res = await fetch(`${API_BASE}/api/patch${q}`);
+        if (!res.ok) {
+          area.textContent = "# No patch available for current run.";
+          return;
+        }
+        const data = await res.json();
+        latestPatchString = data.patch || "";
+        document.getElementById("patchModalStats").textContent = `(${data.files_count} files modified, ${data.findings_count} fixes)`;
+
+        // Syntax highlight diff lines
+        const lines = latestPatchString.split("\n");
+        const formatted = lines.map(line => {
+          const safe = escapeHtml(line);
+          if (line.startsWith("+++") || line.startsWith("---")) return `<div class="diff-meta">${safe}</div>`;
+          if (line.startsWith("@@")) return `<div class="diff-hdr">${safe}</div>`;
+          if (line.startsWith("+")) return `<div class="diff-add">${safe}</div>`;
+          if (line.startsWith("-")) return `<div class="diff-del">${safe}</div>`;
+          return `<div class="text-slate-400">${safe}</div>`;
+        }).join("");
+
+        area.innerHTML = formatted;
+      } catch (err) {
+        area.textContent = `# Error loading patch: ${err.message}`;
+      }
+    }
+
+    function closePatchModal() {
+      document.getElementById("patchModal").classList.add("hidden");
+    }
+
+    function copyPatchContent() {
+      if (!latestPatchString) return;
+      navigator.clipboard.writeText(latestPatchString);
+      const btn = document.getElementById("copyPatchBtn");
+      const orig = btn.textContent;
+      btn.textContent = "Copied to Clipboard!";
+      btn.className = "px-3 py-1.5 text-xs rounded-lg bg-emerald-600 text-white font-semibold transition";
+      setTimeout(() => {
+        btn.textContent = orig;
+        btn.className = "px-3 py-1.5 text-xs rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-semibold transition";
+      }, 2000);
+    }
+
+    async function downloadPatch() {
+      const q = currentRunId ? `?run_id=${encodeURIComponent(currentRunId)}` : "";
+      window.location.href = `${API_BASE}/api/patch${q}`;
+    }
+
     function renderJudgeLog(judgeLog) {
       const container = document.getElementById("judgeLogList");
       if (!judgeLog || !judgeLog.length) {
@@ -883,9 +1539,11 @@
       }).join("");
     }
 
-    function setPreset(path) {
+    function setPreset(path, branch) {
       const input = document.getElementById("repoPathInput");
       if (input) input.value = path;
+      const bInput = document.getElementById("branchInput");
+      if (bInput && branch !== undefined) bInput.value = branch;
       const lbl = document.getElementById("activeRepoLabel");
       if (lbl) lbl.textContent = `Target: ${path}`;
     }
@@ -896,13 +1554,35 @@
       const mode = (document.getElementById("reviewModeSelect") || {}).value || "airgap";
       const branch = ((document.getElementById("branchInput") || {}).value || "").trim();
       const btn = document.getElementById("runReviewBtn");
+      const spinner = document.getElementById("runBtnSpinner");
+      const btnText = document.getElementById("runBtnText");
+      const stepper = document.getElementById("auditStepper");
 
-      if (btn) {
-        btn.disabled = true;
-        btn.textContent = repoPath.startsWith("http") ? "Cloning & Auditing..." : "Auditing...";
-      }
+      if (btn) btn.disabled = true;
+      if (spinner) spinner.classList.remove("hidden");
+      if (btnText) btnText.textContent = repoPath.startsWith("http") ? "Cloning & Auditing..." : "Auditing...";
+      if (stepper) stepper.classList.remove("hidden");
+
       const lbl = document.getElementById("activeRepoLabel");
       if (lbl) lbl.textContent = `Target: ${repoPath} (${mode})`;
+
+      // Stepper simulation
+      const step1 = document.getElementById("step-1");
+      const step2 = document.getElementById("step-2");
+      const step3 = document.getElementById("step-3");
+      const step4 = document.getElementById("step-4");
+      const statusText = document.getElementById("stepperStatusText");
+
+      statusText.textContent = "Step 1 of 4: Ingestion / Clone";
+      step1.className = "p-2 rounded bg-sky-950/60 border border-sky-500 text-sky-200 animate-pulse";
+
+      setTimeout(() => {
+        if (btn.disabled) {
+          statusText.textContent = "Step 2 of 4: Static Probes";
+          step1.className = "p-2 rounded bg-slate-900 border border-emerald-700 text-emerald-300";
+          step2.className = "p-2 rounded bg-sky-950/60 border border-sky-500 text-sky-200 animate-pulse";
+        }
+      }, 700);
 
       try {
         const res = await fetch(`${API_BASE}/api/review`, {
@@ -920,8 +1600,8 @@
         const badge = document.getElementById("verdictBadge");
         badge.textContent = `${run.verdict} (exit ${run.exit_code})`;
         badge.className = run.verdict === "BLOCK"
-          ? "px-3 py-1 text-sm font-semibold rounded-lg bg-rose-950 text-rose-300 border border-rose-700 font-mono"
-          : "px-3 py-1 text-sm font-semibold rounded-lg bg-emerald-950 text-emerald-300 border border-emerald-700 font-mono";
+          ? "px-3.5 py-1 text-sm font-semibold rounded-lg bg-rose-950 text-rose-300 border border-rose-700 font-mono shadow-sm"
+          : "px-3.5 py-1 text-sm font-semibold rounded-lg bg-emerald-950 text-emerald-300 border border-emerald-700 font-mono shadow-sm";
 
         document.getElementById("runMeta").textContent = `run_id: ${run.run_id} | findings: ${run.findings_count} | cost: $${Number(run.cost_usd || 0).toFixed(4)}`;
         document.getElementById("injectionBanner").classList.toggle("hidden", !run.injection_detected);
@@ -936,21 +1616,22 @@
         renderToolCards(currentFindings);
         renderCategoryTabs();
         renderFindings();
-        loadLatestRun();
+        updateTechDebtScorecard(currentFindings, run);
+        await loadSuppressions();
       } catch (err) {
         alert(`Request failed: ${err.message}`);
       } finally {
-        if (btn) {
-          btn.disabled = false;
-          btn.textContent = "Audit Repository";
-        }
+        if (btn) btn.disabled = false;
+        if (spinner) spinner.classList.add("hidden");
+        if (btnText) btnText.textContent = "Audit Repository";
+        if (stepper) setTimeout(() => stepper.classList.add("hidden"), 1200);
       }
     }
 
     async function suppressFinding(findingId) {
-      const owner = window.prompt("Suppression owner (e.g. lead-dev or qa-lead):");
+      const owner = window.prompt("Suppression owner (e.g. lead-dev or qa-architect):");
       if (!owner) return;
-      const reason = window.prompt("Suppression reason (auto-expires in 30 days):");
+      const reason = window.prompt("Business justification / suppression reason (auto-expires in 30 days):");
       if (!reason) return;
       const res = await fetch(`${API_BASE}/api/findings/${encodeURIComponent(findingId)}/suppress`, {
         method: "POST",
@@ -963,6 +1644,8 @@
         renderToolCards(currentFindings);
         renderCategoryTabs();
         renderFindings();
+        updateTechDebtScorecard(currentFindings, null);
+        await loadSuppressions();
       }
     }
 
@@ -1023,8 +1706,8 @@
         const badge = document.getElementById("verdictBadge");
         badge.textContent = `${run.verdict} (exit ${run.exit_code})`;
         badge.className = run.verdict === "BLOCK"
-          ? "px-3 py-1 text-sm font-semibold rounded-lg bg-rose-950 text-rose-300 border border-rose-700 font-mono"
-          : "px-3 py-1 text-sm font-semibold rounded-lg bg-emerald-950 text-emerald-300 border border-emerald-700 font-mono";
+          ? "px-3.5 py-1 text-sm font-semibold rounded-lg bg-rose-950 text-rose-300 border border-rose-700 font-mono shadow-sm"
+          : "px-3.5 py-1 text-sm font-semibold rounded-lg bg-emerald-950 text-emerald-300 border border-emerald-700 font-mono shadow-sm";
 
         document.getElementById("runMeta").textContent = `run_id: ${run.run_id} | findings: ${run.findings_count} | cost: $${Number(run.cost_usd || 0).toFixed(4)}`;
         document.getElementById("injectionBanner").classList.toggle("hidden", !run.injection_detected);
@@ -1039,6 +1722,8 @@
         renderToolCards(currentFindings);
         renderCategoryTabs();
         renderFindings();
+        updateTechDebtScorecard(currentFindings, run);
+        await loadSuppressions();
       } catch (_) {}
     }
 
@@ -1063,6 +1748,7 @@
     renderCategoryTabs();
     checkHealth();
     loadLatestRun();
+    loadSuppressions();
   </script>
 </body>
 </html>
