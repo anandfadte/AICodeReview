@@ -118,7 +118,7 @@ def main() -> None:
     ap.add_argument("--changed", nargs="*", help="Explicit changed files")
     ap.add_argument("--pr-number", default="", help="PR number")
     ap.add_argument("--pr-text", default="", help="PR description")
-    ap.add_argument("--mode", choices=["pr", "full", "airgap"], default="pr")
+    ap.add_argument("--mode", choices=["pr", "full", "airgap"], default="airgap")
     ap.add_argument("--sarif", help="Output SARIF path")
     ap.add_argument("--comment-out", help="Output PR comment markdown path")
     ap.add_argument("--check-out", help="Output GitHub Check JSON path")

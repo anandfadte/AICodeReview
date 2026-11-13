@@ -346,7 +346,7 @@ def run_full_audit(
 
 def main() -> None:
     ap = argparse.ArgumentParser(description="Run LineTrack Full Audit -> audit.html + audit.pdf + findings.sarif")
-    ap.add_argument("--mode", choices=["full", "airgap"], default="full")
+    ap.add_argument("--mode", choices=["full", "airgap"], default="airgap")
     ap.add_argument("--repo", default="sample_repo")
     ap.add_argument("--html-out", default="audit.html")
     ap.add_argument("--pdf-out", default="audit.pdf")

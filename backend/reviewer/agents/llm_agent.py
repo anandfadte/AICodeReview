@@ -185,6 +185,17 @@ class LLMRouter:
                 "candidates": [],
             }
 
+        # Strict API Safety Gate: Require explicit opt-in via ALLOW_LIVE_OPENAI=true
+        allow_live = os.getenv("ALLOW_LIVE_OPENAI", "false").strip().lower() in ("true", "1", "yes")
+        if not allow_live:
+            return {
+                "mode": "deterministic_offline",
+                "model": f"{model_name} (live-api-disabled)",
+                "text": "Live LLM API calls locked (ALLOW_LIVE_OPENAI!=true). Operating in 100% offline deterministic verification at $0.00 cost.",
+                "injection_detected": inj_scan.detected,
+                "candidates": [],
+            }
+
         openai_key = os.getenv("OPENAI_API_KEY", "").strip()
         azure_key = os.getenv("AZURE_OPENAI_KEY", "").strip()
         azure_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT", "").strip()

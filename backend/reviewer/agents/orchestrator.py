@@ -281,7 +281,7 @@ def main() -> None:
     ap.add_argument("--repo", default="sample_repo", help="Target repository path")
     ap.add_argument("--changed", nargs="*", help="Changed file(s)")
     ap.add_argument("--pr-text", default="", help="Untrusted PR description")
-    ap.add_argument("--mode", choices=["pr", "full", "airgap"], default="pr")
+    ap.add_argument("--mode", choices=["pr", "full", "airgap"], default="airgap")
     ap.add_argument("--sarif", help="Optional SARIF output path")
     ap.add_argument("--save", action="store_true", help="Save run & findings into SQLite reviewer.db")
     args = ap.parse_args()
