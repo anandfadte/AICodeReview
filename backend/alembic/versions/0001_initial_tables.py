@@ -66,6 +66,8 @@ def upgrade() -> None:
         sa.Column("status", sa.String(length=32), nullable=False),
         sa.Column("message", sa.Text(), nullable=False),
         sa.Column("tool", sa.String(length=64), server_default="LineTrack", nullable=False),
+        sa.Column("category", sa.String(length=64), server_default="MES Industrial Logic", nullable=False),
+        sa.Column("repo", sa.String(length=256), server_default="", nullable=False),
         sa.Column("verified_deterministically", sa.Boolean(), nullable=False),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
     )

@@ -245,8 +245,12 @@ def run_review(
 def _persist_run(state: dict[str, Any], db_url: str | None = None, branch: str = "", pr_number: str = "") -> None:
     store = ReviewerStore(db_url=db_url, auto_create=False)
     run_id = state["run_id"]
+    repo_name = state.get("repo", "sample_repo")
     for f in state.get("final_findings", []):
-        store.save_finding(f.to_dict(), run_id=run_id)
+        f_dict = f.to_dict()
+        if not f_dict.get("repo"):
+            f_dict["repo"] = repo_name
+        store.save_finding(f_dict, run_id=run_id)
     tool_breakdown = state.get("tool_breakdown") or compute_tool_breakdown(state.get("final_findings", []))
     store.save_run(
         run_id=run_id,

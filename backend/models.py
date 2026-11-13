@@ -72,6 +72,8 @@ class FindingModel(Base):
     status: Mapped[str] = mapped_column(String(32), default="OPEN", index=True)
     message: Mapped[str] = mapped_column(Text, default="")
     tool: Mapped[str] = mapped_column(String(64), default="LineTrack")
+    category: Mapped[str] = mapped_column(String(64), default="MES Industrial Logic")
+    repo: Mapped[str] = mapped_column(String(256), default="")
     verified_deterministically: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 

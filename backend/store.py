@@ -24,7 +24,7 @@ from backend.models import (
     PRRunModel,
     SuppressionModel,
 )
-from backend.reviewer.findings.schema import infer_tool
+from backend.reviewer.findings.schema import infer_category, infer_tool
 from backend.reviewer.guardrails.redact import redact_secrets
 
 DEFAULT_DATABASE_URL = "sqlite:///./reviewer.db"
@@ -57,7 +57,7 @@ class ReviewerStore:
         self.engine = create_portable_engine(self.db_url)
         if auto_create:
             Base.metadata.create_all(self.engine)
-            self._ensure_columns()
+        self._ensure_columns()
         self.SessionLocal = sessionmaker(bind=self.engine, expire_on_commit=False, future=True)
 
     def _ensure_columns(self) -> None:
@@ -69,12 +69,17 @@ class ReviewerStore:
             pass
         try:
             with self.engine.connect() as conn:
-                # Check for 'tool' column in findings
+                # Check for 'tool', 'category', 'repo' columns in findings
                 cols = []
                 if self.engine.dialect.name == "sqlite":
                     cols = [c[1] for c in conn.exec_driver_sql("PRAGMA table_info(findings)").fetchall()]
-                if cols and "tool" not in cols:
-                    conn.exec_driver_sql("ALTER TABLE findings ADD COLUMN tool VARCHAR(64) DEFAULT 'LineTrack'")
+                if cols:
+                    if "tool" not in cols:
+                        conn.exec_driver_sql("ALTER TABLE findings ADD COLUMN tool VARCHAR(64) DEFAULT 'LineTrack'")
+                    if "category" not in cols:
+                        conn.exec_driver_sql("ALTER TABLE findings ADD COLUMN category VARCHAR(64) DEFAULT 'MES Industrial Logic'")
+                    if "repo" not in cols:
+                        conn.exec_driver_sql("ALTER TABLE findings ADD COLUMN repo VARCHAR(256) DEFAULT ''")
                     conn.commit()
         except Exception:
             pass
@@ -175,8 +180,15 @@ class ReviewerStore:
         fix_safe = redact_secrets(str(finding.get("fix") or ""))
         msg_safe = redact_secrets(str(finding.get("message") or finding.get("rule") or ""))
         tool_val = str(finding.get("tool") or infer_tool(str(finding.get("check_id", "")), str(finding.get("rule", ""))))
+        category_val = str(finding.get("category") or infer_category(str(finding.get("check_id", "")), str(finding.get("rule", ""))))
+        repo_val = str(finding.get("repo") or "")
 
         with self.SessionLocal() as session:
+            if not repo_val and run_id:
+                r_row = session.get(PRRunModel, run_id)
+                if r_row:
+                    repo_val = r_row.repo
+
             row = session.get(FindingModel, row_id)
             if row is None:
                 row = FindingModel(
@@ -196,6 +208,8 @@ class ReviewerStore:
                     status=str(finding.get("status", "OPEN")),
                     message=msg_safe,
                     tool=tool_val,
+                    category=category_val,
+                    repo=repo_val,
                     verified_deterministically=bool(finding.get("verified_deterministically", True)),
                 )
                 session.add(row)
@@ -207,6 +221,9 @@ class ReviewerStore:
                 row.message = msg_safe
                 row.status = str(finding.get("status", row.status))
                 row.tool = tool_val
+                row.category = category_val
+                if repo_val:
+                    row.repo = repo_val
                 row.verified_deterministically = bool(finding.get("verified_deterministically", True))
             session.commit()
         return row_id
@@ -290,6 +307,8 @@ class ReviewerStore:
         self,
         run_id: str | None = None,
         audit_id: str | None = None,
+        repo: str | None = None,
+        category: str | None = None,
         now: datetime | None = None,
         include_suppressed: bool = True,
     ) -> list[dict[str, Any]]:
@@ -300,6 +319,10 @@ class ReviewerStore:
                 stmt = stmt.where(FindingModel.run_id == run_id)
             if audit_id is not None:
                 stmt = stmt.where(FindingModel.audit_id == audit_id)
+            if repo is not None and repo.strip() and repo.strip() != "All":
+                stmt = stmt.where(FindingModel.repo == repo.strip())
+            if category is not None and category.strip() and category.strip() != "All":
+                stmt = stmt.where(FindingModel.category == category.strip())
             rows = session.scalars(stmt).all()
 
             active_sups = {
@@ -312,10 +335,24 @@ class ReviewerStore:
                 for s in session.scalars(select(SuppressionModel).where(SuppressionModel.active.is_(True))).all()
             }
 
+            run_cache: dict[str, Any] = {}
             out: list[dict[str, Any]] = []
             for r in rows:
                 if not include_suppressed and r.status == "SUPPRESSED":
                     continue
+                cat_val = getattr(r, "category", None)
+                if not cat_val or cat_val == "MES Industrial Logic":
+                    cat_val = infer_category(r.check_id, r.rule)
+                repo_val = getattr(r, "repo", None)
+                if not repo_val and r.run_id:
+                    if r.run_id not in run_cache:
+                        run_cache[r.run_id] = session.get(PRRunModel, r.run_id)
+                    run_obj = run_cache.get(r.run_id)
+                    if run_obj:
+                        repo_val = run_obj.repo
+                tool_val = getattr(r, "tool", None)
+                if not tool_val or tool_val in {"LineTrack", "MES Domain Checks"}:
+                    tool_val = infer_tool(r.check_id, r.rule)
                 out.append(
                     {
                         "id": r.id,
@@ -333,11 +370,45 @@ class ReviewerStore:
                         "status": r.status,
                         "suppression": active_sups.get(r.id) if r.status == "SUPPRESSED" else None,
                         "message": r.message,
-                        "tool": getattr(r, "tool", None) or infer_tool(r.check_id, r.rule),
+                        "tool": tool_val,
+                        "category": cat_val,
+                        "repo": repo_val or "sample_repo",
                         "verified_deterministically": r.verified_deterministically,
                     }
                 )
             return out
+
+    def get_projects(self) -> list[dict[str, Any]]:
+        """List distinct projects / repositories recorded in reviewer.db."""
+        with self.SessionLocal() as session:
+            runs = session.scalars(select(PRRunModel).order_by(PRRunModel.created_at.desc())).all()
+            projects: dict[str, dict[str, Any]] = {}
+            for r in runs:
+                r_name = (r.repo or "sample_repo").strip()
+                if not r_name:
+                    r_name = "sample_repo"
+                if r_name not in projects:
+                    projects[r_name] = {
+                        "repo": r_name,
+                        "runs_count": 0,
+                        "latest_run_id": r.id,
+                        "latest_verdict": r.verdict,
+                        "latest_mode": r.mode,
+                        "latest_cost_usd": r.cost_usd,
+                        "latest_created_at": _utc(r.created_at).isoformat(),
+                    }
+                projects[r_name]["runs_count"] += 1
+            if not projects:
+                projects["sample_repo"] = {
+                    "repo": "sample_repo",
+                    "runs_count": 0,
+                    "latest_run_id": "",
+                    "latest_verdict": "PASS",
+                    "latest_mode": "airgap",
+                    "latest_cost_usd": 0.0,
+                    "latest_created_at": datetime.now(timezone.utc).isoformat(),
+                }
+            return list(projects.values())
 
     def save_audit(
         self,

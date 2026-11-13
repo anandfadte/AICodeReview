@@ -34,13 +34,29 @@ def infer_tool(check_id: str, rule: str) -> str:
         return "Gitleaks"
     if r.startswith("CVE-") or r in {"MISSING-SBOM"}:
         return "Trivy"
-    if r.startswith("SEMGREP-") or r.startswith("LINETRACK-"):
+    if r.startswith("SEMGREP-") or r.startswith("LINETRACK-") or r.startswith("RBAC-") or r.startswith("IDOR-") or r.startswith("SQL-") or c == "SEC-001":
         return "Semgrep"
-    if c == "OT-001" or r.startswith("PLC-WRITE-"):
+    if c == "OT-001" or r.startswith("PLC-WRITE-") or r == "UNPARSABLE_FLOW":
         return "OT Write Guard"
     if r.startswith("INJECTION_"):
         return "Injection Guard"
     return "MES Domain Checks"
+
+
+def infer_category(check_id: str, rule: str) -> str:
+    r = (rule or "").upper()
+    c = (check_id or "").upper()
+    if c in {"OT-001", "OT-002", "OT-003"} or r.startswith("PLC-WRITE-") or r == "UNPARSABLE_FLOW":
+        return "OT Safety & Control Flow"
+    if r.startswith("GITLEAKS-") or "SECRET" in r or "PASSWORD" in r or "AWS-KEY" in r:
+        return "Secrets & Credentials"
+    if r.startswith("CVE-") or r in {"MISSING-SBOM"}:
+        return "Supply Chain & SCA"
+    if r.startswith("INJECTION_") or "LEAKAGE" in r or "LLM-" in r:
+        return "AI & LLM Safety"
+    if r.startswith("RBAC-") or r.startswith("IDOR-") or c == "SEC-001" or r.startswith("SQL-"):
+        return "Application Security & RBAC"
+    return "MES Industrial Logic"
 
 
 def make_finding_id(check_id: str, rule: str, file: str, line: int) -> str:
@@ -66,6 +82,8 @@ class Finding:
     message: str = ""
     verified_deterministically: bool = True
     tool: str = ""
+    category: str = ""
+    repo: str = ""
 
     def __post_init__(self) -> None:
         self.severity = normalize_severity(self.severity)
@@ -77,6 +95,8 @@ class Finding:
         self.message = redact_secrets(self.message or self.rule)
         if not self.tool:
             self.tool = infer_tool(self.check_id, self.rule)
+        if not self.category:
+            self.category = infer_category(self.check_id, self.rule)
         if self.status not in VALID_STATUSES:
             raise ValueError(f"Invalid status {self.status!r}; expected one of {VALID_STATUSES}")
         if not self.id:
@@ -124,6 +144,8 @@ class Finding:
                 "blast_radius": self.blast_radius,
                 "evidence": self.evidence,
                 "tool": self.tool,
+                "category": self.category,
+                "repo": self.repo,
                 "status": self.status,
                 "verified_deterministically": self.verified_deterministically,
             },

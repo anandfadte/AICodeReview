@@ -182,7 +182,7 @@
         <div class="p-3 rounded-lg bg-slate-950 border border-slate-800/80 space-y-1">
           <div class="font-semibold text-sky-400 font-mono">1. Probes (Layer 1)</div>
           <div class="text-slate-300 font-medium">Individual Static Scanners</div>
-          <p class="text-[11px] text-slate-400">Gitleaks, Semgrep, Trivy, OT Write Guard &amp; MES checks scan code with zero hallucination.</p>
+          <p class="text-[11px] text-slate-400">Semgrep, Gitleaks, Trivy, OT Write Guard &amp; MES checks scan code with zero hallucination.</p>
         </div>
 
         <div class="p-3 rounded-lg bg-slate-950 border border-slate-800/80 space-y-1">
@@ -214,33 +214,62 @@
       <div id="otChecksGrid" class="grid grid-cols-2 sm:grid-cols-5 gap-3"></div>
     </section>
 
-    <!-- Section 6: Findings List with Interactive Dual Filters (Severity & Tool) -->
+    <!-- Section 6: Findings Explorer (Project Filter, Domain Categories & Front-and-Center Cards) -->
     <section class="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4">
-      <div class="flex flex-wrap items-center justify-between gap-3">
-        <div class="flex items-center gap-2">
-          <h3 class="text-sm font-semibold uppercase tracking-wider text-white">Findings</h3>
-          <span id="findingsCountBadge" class="px-2 py-0.5 text-xs rounded-full bg-slate-800 text-slate-300 font-mono">0</span>
+      
+      <!-- Top Project & View Mode Controls -->
+      <div class="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-800">
+        <!-- Project Selector Dropdown -->
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="text-xs uppercase font-semibold text-slate-300 flex items-center gap-1.5">
+            <span>📁</span> Project / Repository:
+          </span>
+          <select id="projectSelect" onchange="onProjectSelect(this.value)" class="px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white focus:outline-none focus:border-sky-500 font-mono">
+            <option value="All">All Projects / Repositories</option>
+          </select>
+          <span id="projectFindingsCount" class="text-xs text-slate-400 font-mono">(16 findings)</span>
         </div>
 
-        <!-- Filter Controls -->
-        <div class="flex flex-wrap items-center gap-3 text-xs">
-          <!-- Tool Filter Pill Indicator -->
-          <div class="flex items-center gap-1.5 text-slate-400">
-            <span>Tool:</span>
-            <span id="activeToolFilterLabel" class="px-2 py-0.5 rounded bg-slate-800 text-white font-mono font-medium">All Tools</span>
-          </div>
-
-          <!-- Severity Filters -->
-          <div class="flex items-center gap-1">
-            <button onclick="setFilter('All')" class="filter-btn px-2.5 py-1 rounded bg-sky-600 text-white font-medium" data-filter="All">All</button>
-            <button onclick="setFilter('High')" class="filter-btn px-2.5 py-1 rounded bg-slate-800 text-slate-300 hover:bg-slate-700" data-filter="High">High / Critical</button>
-            <button onclick="setFilter('Medium')" class="filter-btn px-2.5 py-1 rounded bg-slate-800 text-slate-300 hover:bg-slate-700" data-filter="Medium">Medium</button>
-            <button onclick="setFilter('Low')" class="filter-btn px-2.5 py-1 rounded bg-slate-800 text-slate-300 hover:bg-slate-700" data-filter="Low">Low</button>
-          </div>
+        <!-- View Mode: Flat Feed vs Group by Module/File -->
+        <div class="flex items-center gap-1.5 text-xs">
+          <span class="text-slate-400">View:</span>
+          <button id="viewFlatBtn" onclick="setViewMode('flat')" class="px-2.5 py-1 rounded bg-sky-600 text-white font-medium">
+            Flat Feed
+          </button>
+          <button id="viewGroupedBtn" onclick="setViewMode('grouped')" class="px-2.5 py-1 rounded bg-slate-800 text-slate-300 hover:bg-slate-700 font-medium">
+            Group by File / Module
+          </button>
         </div>
       </div>
 
-      <div id="findingsList" class="space-y-3 text-sm text-slate-400">
+      <!-- Domain Category Tabs -->
+      <div class="space-y-1.5">
+        <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Filter by Domain Category:</div>
+        <div id="categoryTabsBar" class="flex flex-wrap items-center gap-1.5">
+          <!-- Rendered dynamically via renderCategoryTabs() -->
+        </div>
+      </div>
+
+      <!-- Secondary Filters & Stats Bar -->
+      <div class="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-800/80 text-xs">
+        <div class="flex items-center gap-2">
+          <span class="text-slate-400">Active Filters:</span>
+          <span id="activeToolFilterLabel" class="px-2 py-0.5 rounded bg-slate-800 text-white font-mono text-[11px]">Tool: All</span>
+          <span id="activeCategoryFilterLabel" class="px-2 py-0.5 rounded bg-slate-800 text-sky-300 font-mono text-[11px]">Category: All</span>
+        </div>
+
+        <!-- Severity Filter Buttons -->
+        <div class="flex items-center gap-1">
+          <span class="text-slate-400 mr-1">Severity:</span>
+          <button onclick="setFilter('All')" class="filter-btn px-2.5 py-1 rounded bg-sky-600 text-white font-medium" data-filter="All">All</button>
+          <button onclick="setFilter('High')" class="filter-btn px-2.5 py-1 rounded bg-slate-800 text-slate-300 hover:bg-slate-700" data-filter="High">High / Critical</button>
+          <button onclick="setFilter('Medium')" class="filter-btn px-2.5 py-1 rounded bg-slate-800 text-slate-300 hover:bg-slate-700" data-filter="Medium">Medium</button>
+          <button onclick="setFilter('Low')" class="filter-btn px-2.5 py-1 rounded bg-slate-800 text-slate-300 hover:bg-slate-700" data-filter="Low">Low</button>
+        </div>
+      </div>
+
+      <!-- Findings List Container -->
+      <div id="findingsList" class="space-y-4 text-sm text-slate-400 pt-1">
         No findings loaded yet. Click "Audit Repository" or "Sample Repo".
       </div>
     </section>
@@ -310,18 +339,32 @@
     ];
 
     const TOOL_DEFINITIONS = [
-      { name: "OT Write Guard", probe: "AST Control Flow", desc: "5 mandatory safety controls on PLC register writes (Clamp, Auth, Allow-list, Interlock, Audit)", color: "purple" },
+      { name: "Semgrep", probe: "SAST / AST Pattern Rules", desc: "Static pattern & AST rules checking for SQL injections, IDOR, and missing RBAC checks", color: "sky" },
       { name: "Gitleaks", probe: "Regex Secret Hunter", desc: "Detects high-entropy credentials, AWS tokens, passwords, and private keys", color: "amber" },
+      { name: "OT Write Guard", probe: "AST Control Flow", desc: "5 mandatory safety controls on PLC register writes (Clamp, Auth, Allow-list, Interlock, Audit)", color: "purple" },
       { name: "Trivy", probe: "SCA Vulnerabilities", desc: "Software composition analysis for CVEs, vulnerable libraries, and missing SBOM", color: "rose" },
-      { name: "Semgrep", probe: "SAST / AST Rules", desc: "Static pattern & AST rules checking for SQL injections, IDOR, and missing RBAC checks", color: "sky" },
       { name: "MES Domain Checks", probe: "Industrial AST Checks", desc: "Checks for OEE division-by-zero, batch recipe drift, and genealogy orphan parts", color: "emerald" },
       { name: "Injection Guard", probe: "Adversarial Filter", desc: "Isolates and defuses prompt injection attempts in untrusted PR text and commit logs", color: "yellow" }
     ];
 
+    const CATEGORY_DEFINITIONS = [
+      { key: "All", label: "All Categories", icon: "📋" },
+      { key: "OT Safety & Control Flow", label: "OT Safety & Control Flow", icon: "⚙️" },
+      { key: "Application Security & RBAC", label: "Application Security & RBAC", icon: "🛡️" },
+      { key: "Secrets & Credentials", label: "Secrets & Credentials", icon: "🔑" },
+      { key: "MES Industrial Logic", label: "MES Industrial Logic", icon: "🏭" },
+      { key: "AI & LLM Safety", label: "AI & LLM Safety", icon: "🤖" },
+      { key: "Supply Chain & SCA", label: "Supply Chain & SCA", icon: "📦" }
+    ];
+
     let currentRunId = "";
     let currentFindings = [];
+    let currentProjects = [];
+    let activeRepoFilter = "All";
+    let activeCategoryFilter = "All";
     let activeFilter = "All";
     let activeToolFilter = "All";
+    let activeViewMode = "flat"; // 'flat' or 'grouped'
     let currentToolBreakdown = {};
 
     function escapeHtml(str) {
@@ -329,6 +372,44 @@
         .replace(/&/g, "&amp;")
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;");
+    }
+
+    // Helper to derive human-readable module from file name
+    function deriveModuleName(filePath) {
+      const p = (filePath || "").toLowerCase();
+      if (p.includes("flows.json")) return "Node-RED OT PLC Register Control Flow";
+      if (p.includes("api.py")) return "FastAPI Admin Setpoint & REST Controller";
+      if (p.includes("oee.py")) return "Plant OEE Metrics & Downtime Calculation Engine";
+      if (p.includes("secret.py")) return "Cloud & Database Credential Manager";
+      if (p.includes("ask.py")) return "GenAI Natural Language Query & Ingestion Pipeline";
+      if (p.includes("genealogy.py")) return "Batch Traceability & Genealogy Engine";
+      const base = filePath.split("/").pop() || filePath;
+      return `${base} Module`;
+    }
+
+    // Helper to derive specialist agent name from check_id / category
+    function deriveSpecialistAgent(checkId, rule, category) {
+      if ((checkId || "").startsWith("OT-") || (rule || "").startsWith("PLC-")) return "OTSafetyAgent (gpt-4o-mini)";
+      if ((checkId || "").startsWith("SEC-") || (rule || "").startsWith("RBAC-") || (rule || "").startsWith("IDOR-") || (rule || "").startsWith("GITLEAKS-")) return "SecurityAgent (gpt-4o-mini)";
+      if ((checkId || "").startsWith("MES-") || (rule || "").startsWith("OEE-") || (rule || "").startsWith("GENEALOGY-")) return "MESCorrectnessAgent (gpt-4o-mini)";
+      if ((checkId || "").startsWith("LLM-") || (rule || "").startsWith("INJECTION_")) return "SecurityAgent + PrivacyAgent";
+      return "SecurityAgent (gpt-4o-mini)";
+    }
+
+    // Helper to derive technical debt impact statement
+    function deriveTechnicalDebt(checkId, rule, severity) {
+      const r = (rule || "").toUpperCase();
+      if (r.includes("PLC-WRITE-NO-CLAMP")) return { level: "CRITICAL OPERATIONAL DEBT", desc: "Physical equipment hazard: Unclamped spindle RPM can cause motor blowout or plant safety interlock trips." };
+      if (r.includes("PLC-WRITE-NO-AUTH")) return { level: "HIGH SECURITY DEBT", desc: "Unauthorized OT override: Lacks role verification before dispatching write commands to physical PLC registers." };
+      if (r.includes("PLC-WRITE-NO-INTERLOCK")) return { level: "HIGH SAFETY DEBT", desc: "Safety interlock violation: Hardware emergency stop state is not validated prior to actuator engagement." };
+      if (r.includes("PLC-WRITE-NO-AUDIT")) return { level: "MEDIUM AUDIT DEBT", desc: "Compliance gap: Missing immutable audit trail entry violates 21 CFR Part 11 and IEC 62443 event logging." };
+      if (r.includes("GITLEAKS") || r.includes("AWS-KEY") || r.includes("PASSWORD")) return { level: "CRITICAL SECURITY DEBT", desc: "Hardcoded secret exposed: Cloud credentials committed to code repository subject to automated exfiltration." };
+      if (r.includes("RBAC")) return { level: "HIGH COMPLIANCE DEBT", desc: "Access control breach: Admin setpoint mutation lacks role-based authorization check." };
+      if (r.includes("IDOR")) return { level: "HIGH SECURITY DEBT", desc: "Horizontal privilege escalation: Multi-tenant batch orders accessed without plant ownership verification." };
+      if (r.includes("OEE-DIV-BY-ZERO")) return { level: "MEDIUM OPERATIONAL DEBT", desc: "MES downtime crash: Unhandled zero runtime division will crash plant shift reporting dashboards." };
+      if (r.includes("OEE-OUT-OF-RANGE")) return { level: "MEDIUM OPERATIONAL DEBT", desc: "Data corruption: Calculated OEE metrics exceeding 100% invalidate production line SLA metrics." };
+      if (r.includes("INJECTION")) return { level: "HIGH AI SAFETY DEBT", desc: "Prompt injection vulnerability: Untrusted external strings override system instructions." };
+      return { level: `${(severity || "Medium").toUpperCase()} TECHNICAL DEBT`, desc: "Deviation from enterprise software and industrial plant safety standards." };
     }
 
     async function checkHealth() {
@@ -371,14 +452,26 @@
 
     function toolBadge(toolName) {
       const map = {
-        "OT Write Guard": "bg-purple-950 text-purple-300 border-purple-700",
-        "Gitleaks": "bg-amber-950 text-amber-300 border-amber-700",
-        "Trivy": "bg-rose-950 text-rose-300 border-rose-700",
         "Semgrep": "bg-sky-950 text-sky-300 border-sky-700",
+        "Gitleaks": "bg-amber-950 text-amber-300 border-amber-700",
+        "OT Write Guard": "bg-purple-950 text-purple-300 border-purple-700",
+        "Trivy": "bg-rose-950 text-rose-300 border-rose-700",
         "MES Domain Checks": "bg-emerald-950 text-emerald-300 border-emerald-700",
         "Injection Guard": "bg-yellow-950 text-yellow-300 border-yellow-700"
       };
       return map[toolName] || "bg-slate-800 text-slate-300 border-slate-700";
+    }
+
+    function categoryBadge(category) {
+      const map = {
+        "OT Safety & Control Flow": "bg-purple-950 text-purple-300 border-purple-800",
+        "Application Security & RBAC": "bg-sky-950 text-sky-300 border-sky-800",
+        "Secrets & Credentials": "bg-amber-950 text-amber-300 border-amber-800",
+        "MES Industrial Logic": "bg-emerald-950 text-emerald-300 border-emerald-800",
+        "AI & LLM Safety": "bg-yellow-950 text-yellow-300 border-yellow-800",
+        "Supply Chain & SCA": "bg-rose-950 text-rose-300 border-rose-800"
+      };
+      return map[category] || "bg-slate-800 text-slate-300 border-slate-700";
     }
 
     function updateCostTelemetry(run) {
@@ -416,6 +509,41 @@
       }
     }
 
+    async function loadProjects() {
+      try {
+        const res = await fetch(`${API_BASE}/api/projects`);
+        if (!res.ok) return;
+        currentProjects = await res.json();
+        const sel = document.getElementById("projectSelect");
+        const prevVal = sel.value;
+        sel.innerHTML = `<option value="All">All Projects / Repositories (${currentProjects.length})</option>` +
+          currentProjects.map(p => {
+            const label = p.repo.length > 50 ? `...${p.repo.slice(-45)}` : p.repo;
+            return `<option value="${escapeHtml(p.repo)}">${escapeHtml(label)} (${p.runs_count} runs &bull; ${escapeHtml(p.latest_verdict)})</option>`;
+          }).join("");
+        if (prevVal && [...sel.options].some(o => o.value === prevVal)) {
+          sel.value = prevVal;
+        }
+      } catch (_) {}
+    }
+
+    function onProjectSelect(repoVal) {
+      activeRepoFilter = repoVal;
+      renderCategoryTabs();
+      renderFindings();
+    }
+
+    function setViewMode(mode) {
+      activeViewMode = mode;
+      document.getElementById("viewFlatBtn").className = mode === "flat"
+        ? "px-2.5 py-1 rounded bg-sky-600 text-white font-medium"
+        : "px-2.5 py-1 rounded bg-slate-800 text-slate-300 hover:bg-slate-700 font-medium";
+      document.getElementById("viewGroupedBtn").className = mode === "grouped"
+        ? "px-2.5 py-1 rounded bg-sky-600 text-white font-medium"
+        : "px-2.5 py-1 rounded bg-slate-800 text-slate-300 hover:bg-slate-700 font-medium";
+      renderFindings();
+    }
+
     function renderToolCards(findings) {
       // Build tool stats from current findings
       const counts = {};
@@ -424,7 +552,7 @@
       });
 
       findings.forEach(f => {
-        const t = f.tool || "MES Domain Checks";
+        const t = f.tool || "Semgrep";
         if (!counts[t]) counts[t] = { total: 0, high: 0, rules: new Set() };
         counts[t].total += 1;
         if ((f.severity === "High" || f.severity === "Critical") && f.status !== "SUPPRESSED") {
@@ -440,7 +568,6 @@
         const isSelected = activeToolFilter === tool.name;
         const activeBorder = isSelected ? "ring-2 ring-sky-500 border-sky-500" : "border-slate-800 hover:border-slate-700";
         const highBadge = data.high > 0 ? `<span class="px-1.5 py-0.5 rounded text-[10px] bg-rose-950 text-rose-300 border border-rose-800 font-mono font-semibold">${data.high} High/Crit</span>` : "";
-        const rulesCount = data.rules.size;
 
         return `
           <div onclick="setToolFilter('${escapeHtml(tool.name)}')" class="p-4 rounded-lg bg-slate-950 border ${activeBorder} cursor-pointer transition flex flex-col justify-between space-y-3">
@@ -464,6 +591,32 @@
       }).join("");
     }
 
+    function renderCategoryTabs() {
+      // Calculate counts for categories for active project
+      const scoped = currentFindings.filter(f => activeRepoFilter === "All" || (f.repo || "").includes(activeRepoFilter));
+      const counts = { All: scoped.length };
+      scoped.forEach(f => {
+        const c = f.category || "MES Industrial Logic";
+        counts[c] = (counts[c] || 0) + 1;
+      });
+
+      const container = document.getElementById("categoryTabsBar");
+      container.innerHTML = CATEGORY_DEFINITIONS.map(cat => {
+        const cnt = counts[cat.key] || 0;
+        const isSelected = activeCategoryFilter === cat.key;
+        const activeCls = isSelected
+          ? "bg-sky-600 text-white font-medium border-sky-500 shadow"
+          : "bg-slate-950 text-slate-300 hover:bg-slate-800 border-slate-800";
+        return `
+          <button onclick="setCategoryFilter('${escapeHtml(cat.key)}')" class="px-3 py-1.5 rounded-lg border text-xs flex items-center gap-1.5 transition ${activeCls}">
+            <span>${cat.icon}</span>
+            <span>${escapeHtml(cat.label)}</span>
+            <span class="px-1.5 py-0.2 rounded-full font-mono text-[10px] ${isSelected ? 'bg-sky-800 text-white' : 'bg-slate-800 text-slate-400'}">${cnt}</span>
+          </button>
+        `;
+      }).join("");
+    }
+
     function setFilter(filter) {
       activeFilter = filter;
       document.querySelectorAll(".filter-btn").forEach((btn) => {
@@ -477,7 +630,7 @@
 
     function setToolFilter(toolName) {
       activeToolFilter = (activeToolFilter === toolName && toolName !== "All") ? "All" : toolName;
-      document.getElementById("activeToolFilterLabel").textContent = activeToolFilter === "All" ? "All Tools" : activeToolFilter;
+      document.getElementById("activeToolFilterLabel").textContent = `Tool: ${activeToolFilter}`;
       document.getElementById("toolFilterResetBtn").className = activeToolFilter === "All"
         ? "px-2.5 py-1 text-xs rounded bg-sky-600 text-white font-medium"
         : "px-2.5 py-1 text-xs rounded bg-slate-800 text-slate-300 hover:bg-slate-700";
@@ -485,74 +638,225 @@
       renderFindings();
     }
 
-    function toggleDetails(idx) {
-      const box = document.getElementById(`detail-${idx}`);
-      const btn = document.getElementById(`toggle-${idx}`);
-      if (!box) return;
-      const hidden = box.classList.toggle("hidden");
-      btn.textContent = hidden ? "Show Details" : "Hide Details";
+    function setCategoryFilter(categoryKey) {
+      activeCategoryFilter = categoryKey;
+      document.getElementById("activeCategoryFilterLabel").textContent = `Category: ${categoryKey}`;
+      renderCategoryTabs();
+      renderFindings();
+    }
+
+    function copyFixText(fixId, btnEl) {
+      const el = document.getElementById(fixId);
+      if (!el) return;
+      navigator.clipboard.writeText(el.innerText || el.textContent);
+      const original = btnEl.textContent;
+      btnEl.textContent = "Copied!";
+      btnEl.className = "px-2.5 py-1 text-xs rounded bg-emerald-700 text-white font-semibold transition";
+      setTimeout(() => {
+        btnEl.textContent = original;
+        btnEl.className = "px-2.5 py-1 text-xs rounded bg-slate-800 hover:bg-slate-700 text-emerald-300 border border-emerald-800 transition";
+      }, 1800);
+    }
+
+    function renderFindingCard(f, idx) {
+      const toolName = f.tool || "Semgrep";
+      const category = f.category || "MES Industrial Logic";
+      const moduleName = deriveModuleName(f.file);
+      const specialist = deriveSpecialistAgent(f.check_id, f.rule, category);
+      const debt = deriveTechnicalDebt(f.check_id, f.rule, f.severity);
+      const repoLabel = f.repo ? (f.repo.split(/[\\/]/).pop() || f.repo) : "sample_repo";
+
+      return `
+        <article class="p-5 rounded-xl bg-slate-950 border border-slate-800 space-y-4 shadow-sm hover:border-slate-700 transition">
+          
+          <!-- Top Metadata Bar: Repo, Category, Severity, Check ID -->
+          <div class="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-800/80">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="px-2 py-0.5 text-xs font-mono rounded bg-slate-900 text-slate-300 border border-slate-700 flex items-center gap-1">
+                <span>📁</span> ${escapeHtml(repoLabel)}
+              </span>
+              <span class="px-2.5 py-0.5 text-xs font-semibold rounded border ${categoryBadge(category)}">
+                ${escapeHtml(category)}
+              </span>
+              <span class="px-2.5 py-0.5 text-xs font-bold rounded border uppercase ${severityBadge(f.severity)}">
+                ${escapeHtml(f.severity)}
+              </span>
+              <span class="font-mono text-xs font-semibold text-white ml-1">
+                ${escapeHtml(f.check_id)} / ${escapeHtml(f.rule)}
+              </span>
+              ${f.status === "SUPPRESSED" ? `<span class="px-2 py-0.5 text-xs rounded bg-slate-800 text-amber-300 border border-amber-700">SUPPRESSED</span>` : ""}
+            </div>
+
+            <!-- Suppress & Actions -->
+            <div class="flex items-center gap-2">
+              ${f.status !== "SUPPRESSED" ? `<button onclick="suppressFinding('${escapeHtml(f.id)}')" class="px-2.5 py-1 text-xs rounded bg-amber-950 hover:bg-amber-900 text-amber-200 border border-amber-700 transition">Suppress (30d)</button>` : ""}
+            </div>
+          </div>
+
+          <!-- Location Context & Module (Prominent & Clear) -->
+          <div class="flex flex-wrap items-center justify-between gap-2 bg-slate-900/70 p-3 rounded-lg border border-slate-800">
+            <div class="flex items-center gap-2">
+              <span class="text-sm font-bold text-sky-400 font-mono flex items-center gap-1.5">
+                <span>📍</span> ${escapeHtml(f.file)} : Line ${f.line}
+              </span>
+              <span class="text-xs text-slate-400">&bull;</span>
+              <span class="text-xs font-semibold text-slate-200">${escapeHtml(moduleName)}</span>
+            </div>
+            <span class="text-[11px] font-mono text-slate-400">id: ${escapeHtml(f.id)}</span>
+          </div>
+
+          <!-- Multi-Tool Attribution & LLM Synthesis Row -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+            <div class="p-2.5 rounded-lg bg-slate-900/90 border border-slate-800 space-y-0.5">
+              <div class="text-[10px] uppercase font-semibold text-slate-400">🛠️ Originating Scanner</div>
+              <div class="font-semibold text-white flex items-center gap-1.5">
+                <span class="px-2 py-0.5 rounded text-[11px] border ${toolBadge(toolName)}">${escapeHtml(toolName)}</span>
+              </div>
+            </div>
+
+            <div class="p-2.5 rounded-lg bg-slate-900/90 border border-slate-800 space-y-0.5">
+              <div class="text-[10px] uppercase font-semibold text-slate-400">🧠 LLM Specialist Synthesis</div>
+              <div class="font-medium text-purple-300">${escapeHtml(specialist)}</div>
+            </div>
+
+            <div class="p-2.5 rounded-lg bg-slate-900/90 border border-slate-800 space-y-0.5">
+              <div class="text-[10px] uppercase font-semibold text-slate-400">⚖️ Verification Status</div>
+              <div>
+                ${f.verified_deterministically
+                  ? `<span class="text-emerald-400 font-semibold flex items-center gap-1">&check; Verified Deterministically</span>`
+                  : `<span class="text-amber-400 font-semibold flex items-center gap-1">&bull; Unverified LLM Candidate</span>`}
+              </div>
+            </div>
+          </div>
+
+          <!-- Detected Issue Explanation -->
+          <div class="space-y-1">
+            <div class="text-[11px] uppercase font-semibold text-slate-400">⚠️ Detected Issue:</div>
+            <p class="text-slate-200 text-sm font-medium leading-relaxed">${escapeHtml(f.message)}</p>
+          </div>
+
+          <!-- Code Evidence Snippet (Directly Visible) -->
+          <div class="space-y-1.5">
+            <div class="text-[11px] uppercase font-semibold text-slate-400 flex items-center justify-between">
+              <span>💻 Code Evidence &amp; Context:</span>
+              <span class="font-mono text-[10px] text-slate-500">${escapeHtml(f.file)}:${f.line}</span>
+            </div>
+            <pre class="p-3.5 rounded-lg bg-slate-900 text-slate-200 font-mono text-xs overflow-x-auto border border-slate-800/90 leading-relaxed">${escapeHtml(f.evidence)}</pre>
+          </div>
+
+          <!-- Actionable Recommendation / Fix Box (Prominently Highlighted) -->
+          <div class="p-4 rounded-lg bg-emerald-950/40 border border-emerald-800/80 space-y-2">
+            <div class="flex items-center justify-between">
+              <div class="text-xs uppercase font-bold text-emerald-400 flex items-center gap-1.5">
+                <span>💡</span> Actionable Recommendation / Remediation:
+              </div>
+              <button onclick="copyFixText('fix-${idx}', this)" class="px-2.5 py-1 text-xs rounded bg-slate-800 hover:bg-slate-700 text-emerald-300 border border-emerald-800 transition">
+                Copy Fix
+              </button>
+            </div>
+            <p id="fix-${idx}" class="text-xs text-emerald-200 font-mono bg-emerald-950/60 p-2.5 rounded border border-emerald-900 leading-relaxed">${escapeHtml(f.fix)}</p>
+          </div>
+
+          <!-- Technical Debt & Compliance Standards Footer -->
+          <div class="pt-3 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-3 text-xs">
+            <div class="space-y-0.5">
+              <div class="text-[10px] uppercase font-semibold text-rose-400">${escapeHtml(debt.level)}</div>
+              <p class="text-slate-400 text-[11px]">${escapeHtml(debt.desc)}</p>
+            </div>
+            <div class="text-right">
+              <div class="text-[10px] uppercase font-semibold text-slate-400">Industry Standards</div>
+              <div class="text-sky-300 font-mono text-[11px]">${escapeHtml((f.standards || []).join(", ") || "IEC 62443 / ISO 22400")}</div>
+            </div>
+          </div>
+
+        </article>
+      `;
     }
 
     function renderFindings() {
       const container = document.getElementById("findingsList");
-      const filtered = currentFindings.filter((f) => {
-        // Tool filter
-        if (activeToolFilter !== "All" && (f.tool || "MES Domain Checks") !== activeToolFilter) {
-          return false;
-        }
-        // Severity filter
+
+      // Filter by Project / Repo
+      const repoFiltered = currentFindings.filter((f) => {
+        if (activeRepoFilter === "All") return true;
+        return (f.repo || "").includes(activeRepoFilter) || activeRepoFilter.includes(f.repo || "");
+      });
+
+      // Filter by Category
+      const catFiltered = repoFiltered.filter((f) => {
+        if (activeCategoryFilter === "All") return true;
+        return (f.category || "MES Industrial Logic") === activeCategoryFilter;
+      });
+
+      // Filter by Tool
+      const toolFiltered = catFiltered.filter((f) => {
+        if (activeToolFilter === "All") return true;
+        return (f.tool || "Semgrep") === activeToolFilter;
+      });
+
+      // Filter by Severity
+      const finalFiltered = toolFiltered.filter((f) => {
         if (activeFilter === "All") return true;
         if (activeFilter === "High") return f.severity === "High" || f.severity === "Critical";
         return f.severity === activeFilter;
       });
 
-      document.getElementById("findingsCountBadge").textContent = `${filtered.length} of ${currentFindings.length}`;
+      document.getElementById("projectFindingsCount").textContent = `(${repoFiltered.length} findings in selected project)`;
 
-      if (!filtered.length) {
+      if (!finalFiltered.length) {
         container.innerHTML = `
-          <div class="p-6 rounded-lg bg-slate-950 border border-slate-800 text-slate-400 text-center space-y-1">
-            <p>No findings match filter (Severity: "${escapeHtml(activeFilter)}", Tool: "${escapeHtml(activeToolFilter)}").</p>
-            <p class="text-xs text-slate-500">Click "Show All Tools" or clear filters to view all issues.</p>
+          <div class="p-8 rounded-xl bg-slate-950 border border-slate-800 text-slate-400 text-center space-y-2">
+            <p class="text-base font-semibold text-white">No findings match the selected criteria.</p>
+            <p class="text-xs text-slate-500">
+              Project: "${escapeHtml(activeRepoFilter)}" &bull; Category: "${escapeHtml(activeCategoryFilter)}" &bull; Tool: "${escapeHtml(activeToolFilter)}" &bull; Severity: "${escapeHtml(activeFilter)}"
+            </p>
+            <div class="pt-2">
+              <button onclick="activeRepoFilter='All'; activeCategoryFilter='All'; activeToolFilter='All'; activeFilter='All'; renderCategoryTabs(); renderFindings();" class="px-3 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-xs font-semibold">
+                Reset All Filters
+              </button>
+            </div>
           </div>
         `;
         return;
       }
 
-      container.innerHTML = filtered.map((f, idx) => {
-        const toolName = f.tool || "MES Domain Checks";
-        return `
-          <article class="p-4 rounded-lg bg-slate-950 border border-slate-800 space-y-2.5">
-            <div class="flex flex-wrap items-center justify-between gap-2">
-              <div class="flex flex-wrap items-center gap-2">
-                <span class="px-2 py-0.5 text-xs font-semibold rounded border ${toolBadge(toolName)}">${escapeHtml(toolName)}</span>
-                <span class="px-2 py-0.5 text-xs font-semibold rounded border ${severityBadge(f.severity)}">${escapeHtml(f.severity)}</span>
-                <span class="font-semibold text-white font-mono">${escapeHtml(f.check_id)} / ${escapeHtml(f.rule)}</span>
-                <span class="font-mono text-xs text-sky-400">${escapeHtml(f.file)}:${f.line}</span>
-                ${f.verified_deterministically ? `<span class="px-2 py-0.5 text-[10px] rounded bg-emerald-950 text-emerald-300 border border-emerald-800 font-mono">Verified Deterministically</span>` : `<span class="px-2 py-0.5 text-[10px] rounded bg-amber-950 text-amber-300 border border-amber-800 font-mono">Unverified (LLM Candidate)</span>`}
-                ${f.status === "SUPPRESSED" ? `<span class="px-2 py-0.5 text-xs rounded bg-slate-800 text-amber-300 border border-amber-700">SUPPRESSED</span>` : ""}
+      // Grouped Mode: Group by File / Module
+      if (activeViewMode === "grouped") {
+        const groups = {};
+        finalFiltered.forEach((f) => {
+          const file = f.file || "unknown";
+          if (!groups[file]) groups[file] = [];
+          groups[file].push(f);
+        });
+
+        container.innerHTML = Object.entries(groups).map(([file, list], gIdx) => {
+          const modName = deriveModuleName(file);
+          const highs = list.filter(f => f.severity === "High" || f.severity === "Critical").length;
+          return `
+            <div class="space-y-3">
+              <div class="p-3.5 rounded-xl bg-slate-900 border border-slate-700/80 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <span class="text-base">📄</span>
+                  <div>
+                    <span class="font-mono font-bold text-white text-sm">${escapeHtml(file)}</span>
+                    <span class="text-slate-400 text-xs ml-2">(${escapeHtml(modName)})</span>
+                  </div>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="px-2 py-0.5 rounded text-xs bg-slate-950 text-slate-300 border border-slate-800 font-mono">${list.length} finding(s)</span>
+                  ${highs > 0 ? `<span class="px-2 py-0.5 rounded text-xs bg-rose-950 text-rose-300 border border-rose-800 font-mono font-semibold">${highs} High/Crit</span>` : ""}
+                </div>
               </div>
-              <div class="flex items-center gap-2">
-                ${f.status !== "SUPPRESSED" ? `<button onclick="suppressFinding('${escapeHtml(f.id)}')" class="px-2.5 py-1 text-xs rounded bg-amber-950 hover:bg-amber-900 text-amber-200 border border-amber-700">Suppress</button>` : ""}
-                <button id="toggle-${idx}" onclick="toggleDetails(${idx})" class="px-2.5 py-1 text-xs rounded bg-slate-800 hover:bg-slate-700 text-slate-200">
-                  Show Details
-                </button>
+              <div class="space-y-4 pl-2 border-l-2 border-slate-800">
+                ${list.map((f, idx) => renderFindingCard(f, `${gIdx}-${idx}`)).join("")}
               </div>
             </div>
-            <p class="text-slate-300 text-xs">${escapeHtml(f.message)}</p>
-            <div id="detail-${idx}" class="hidden space-y-2 pt-2 border-t border-slate-800">
-              <div class="text-[11px] text-slate-400 font-medium">Code Evidence:</div>
-              <pre class="p-3 rounded bg-slate-900 text-slate-200 font-mono text-xs overflow-x-auto border border-slate-800">${escapeHtml(f.evidence)}</pre>
-              <div class="p-2.5 rounded bg-emerald-950/40 border border-emerald-900/60 text-xs text-emerald-300">
-                <span class="font-semibold">Remediation:</span> ${escapeHtml(f.fix)}
-              </div>
-              <div class="flex flex-wrap items-center justify-between text-xs text-slate-400 pt-1">
-                <span>Compliance Standards: ${escapeHtml((f.standards || []).join(", ") || "General OT/MES Policy")}</span>
-                <span class="font-mono text-[11px]">id: ${escapeHtml(f.id)}</span>
-              </div>
-            </div>
-          </article>
-        `;
-      }).join("");
+          `;
+        }).join("");
+      } else {
+        // Flat Mode
+        container.innerHTML = finalFiltered.map((f, idx) => renderFindingCard(f, idx)).join("");
+      }
     }
 
     function renderJudgeLog(judgeLog) {
@@ -628,7 +932,9 @@
 
         const fRes = await fetch(`${API_BASE}/api/findings?run_id=${encodeURIComponent(run.run_id)}`);
         currentFindings = await fRes.json();
+        await loadProjects();
         renderToolCards(currentFindings);
+        renderCategoryTabs();
         renderFindings();
         loadLatestRun();
       } catch (err) {
@@ -655,6 +961,7 @@
         const fRes = await fetch(`${API_BASE}/api/findings?run_id=${encodeURIComponent(currentRunId)}`);
         currentFindings = await fRes.json();
         renderToolCards(currentFindings);
+        renderCategoryTabs();
         renderFindings();
       }
     }
@@ -726,9 +1033,11 @@
         renderOtChecks(run.ot_checks);
         renderJudgeLog(run.judge_log);
 
+        await loadProjects();
         const fRes = await fetch(`${API_BASE}/api/findings?run_id=${encodeURIComponent(run.run_id)}`);
         currentFindings = await fRes.json();
         renderToolCards(currentFindings);
+        renderCategoryTabs();
         renderFindings();
       } catch (_) {}
     }
@@ -751,6 +1060,7 @@
     // Initialize on load
     renderOtChecks({});
     renderToolCards([]);
+    renderCategoryTabs();
     checkHealth();
     loadLatestRun();
   </script>

@@ -39,6 +39,8 @@ class FindingOut(BaseModel):
     suppression: dict[str, Any] | None = None
     message: str = ""
     tool: str = "LineTrack"
+    category: str = "MES Industrial Logic"
+    repo: str = ""
     verified_deterministically: bool = True
 
 

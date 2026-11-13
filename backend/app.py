@@ -112,13 +112,27 @@ def get_run(run_id: str) -> ReviewRunOut:
 
 
 @app.get("/api/findings", response_model=list[FindingOut])
-def list_findings(run_id: str = Query(default="")) -> list[FindingOut]:
+def list_findings(
+    run_id: str = Query(default=""),
+    repo: str = Query(default=""),
+    category: str = Query(default=""),
+) -> list[FindingOut]:
     store = _get_store()
-    target_run = run_id or (store.get_latest_run() or {}).get("run_id")
-    if not target_run:
-        return []
-    rows = store.get_findings(run_id=target_run)
+    target_run = run_id
+    if not target_run and not repo:
+        target_run = (store.get_latest_run() or {}).get("run_id")
+    rows = store.get_findings(
+        run_id=target_run or None,
+        repo=repo or None,
+        category=category or None,
+    )
     return [FindingOut(**r) for r in rows]
+
+
+@app.get("/api/projects")
+def list_projects() -> list[dict[str, Any]]:
+    store = _get_store()
+    return store.get_projects()
 
 
 @app.post("/api/findings/{finding_id}/suppress")
@@ -184,6 +198,8 @@ def get_report(run_id: str = Query(default=""), format: str = Query(default="jso
                 suppression=fd["suppression"],
                 message=fd["message"],
                 tool=fd.get("tool", ""),
+                category=fd.get("category", ""),
+                repo=fd.get("repo", ""),
                 verified_deterministically=fd["verified_deterministically"],
             )
             for fd in findings_dicts
